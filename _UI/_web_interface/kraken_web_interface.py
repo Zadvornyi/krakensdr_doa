@@ -51,7 +51,7 @@ if os.path.exists(settings_file_path):
     with open(settings_file_path, 'r') as myfile:
         dsp_settings = json.loads(myfile.read())
 
-from _antennas_switcher.krakenSDR_antennas_switcher import AntennasSwitcher
+from krakenSDR_antennas_switcher import AntennasSwitcher
 from krakenSDR_receiver import ReceiverRTLSDR
 from krakenSDR_signal_processor import SignalProcessor
 from krakenSDR_signal_processor import xi
@@ -94,7 +94,7 @@ class webInterface():
         self.module_receiver.daq_rx_gain       = float(dsp_settings.get("uniform_gain", 1.4))
         self.module_receiver.rec_ip_addr       = dsp_settings.get("default_ip", "0.0.0.0")
         # Instantiate and configure Antennas Switcher
-        self.antennas_switcher = AntennasSwitcher(self.module_receiver.daq_center_freq/10**6)
+        self.module_antennas_switcher = AntennasSwitcher(self.module_receiver.daq_center_freq/10**6)
 
         self.module_signal_processor = SignalProcessor(data_que=self.sp_data_que, module_receiver=self.module_receiver, logging_level=self.logging_level)
         self.module_signal_processor.DOA_ant_alignment    = dsp_settings.get("ant_arrangement", "ULA")
@@ -758,7 +758,7 @@ def update_daq_params(input_value, f0, gain):
     if webInterface_inst.module_signal_processor.run_processing:
         webInterface_inst.daq_center_freq = f0
         webInterface_inst.config_daq_rf(f0,gain)
-        webInterface_inst.antennas_switcher.changeAntennas(f0)
+        webInterface_inst.module_antennas_switcher.changeAntennas(f0)
         for i in range(webInterface_inst.module_signal_processor.max_vfos):
             webInterface_inst.module_signal_processor.vfo_freq[i] = f0
             app.push_mods({

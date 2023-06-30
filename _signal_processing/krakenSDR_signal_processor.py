@@ -18,6 +18,7 @@
 #
 # - coding: utf-8 -*-
 
+import copy
 import json
 import logging
 import math
@@ -26,9 +27,12 @@ import os
 # Import built-in modules
 import threading
 import time
+import traceback
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from functools import lru_cache
 from multiprocessing.dummy import Pool
+from pathlib import Path
 from typing import Tuple
 
 # Import optimization modules
@@ -41,9 +45,10 @@ import requests
 
 # Signal processing support
 import scipy
-from numba import jit, njit
+from numba import njit
 from pyargus import directionEstimation as de
 from scipy import fft, signal
+from signal_utils import fm_demod, write_wav
 
 # os.environ['OPENBLAS_NUM_THREADS'] = '4'
 # os.environ['NUMBA_CPU_NAME'] = 'cortex-a72'
@@ -58,6 +63,10 @@ try:
 except ModuleNotFoundError:
     hasgps = False
     print("Can't find gpsd - ok if no external gps used")
+
+MIN_SPEED_FOR_VALID_HEADING = 2.0  # m / s
+MIN_DURATION_FOR_VALID_HEADING = 3.0  # s
+DEFAULT_VFO_FIR_ORDER_FACTOR = int(2)
 
 
 class SignalProcessor(threading.Thread):
@@ -80,7 +89,12 @@ class SignalProcessor(threading.Thread):
         self.data_que = data_que
         self.en_spectrum = False
         self.en_record = False
+        self.wav_record_path = f"{self.root_path}/records/fm"
+        self.en_iq_files = False
+        self.iq_record_path = f"{self.root_path}/records/iq"
         self.en_DOA_estimation = True
+        self.doa_measure = "Linear"
+        self.compass_offset = 0.0
         self.first_frame = 1  # Used to configure local variables from the header fields
         self.processed_signal = np.empty(0)
 
@@ -121,8 +135,25 @@ class SignalProcessor(threading.Thread):
         # VFO settings
         self.max_vfos = 16
         self.vfo_bw = [12500] * self.max_vfos
+        self.vfo_fir_order_factor = [DEFAULT_VFO_FIR_ORDER_FACTOR] * self.max_vfos
         self.vfo_freq = [self.module_receiver.daq_center_freq] * self.max_vfos
         self.vfo_squelch = [-120] * self.max_vfos
+        self.vfo_default_demod = "None"
+        self.vfo_demod = ["Default"] * self.max_vfos
+        self.vfo_default_iq = "False"
+        self.vfo_iq = ["Default"] * self.max_vfos
+        self.vfo_demod_channel = [None] * self.max_vfos
+        self.vfo_theta_channel = [[]] * self.max_vfos
+        self.vfo_iq_channel = [None] * self.max_vfos
+        self.vfo_blocked = [False] * self.max_vfos
+        self.vfo_time = [0] * self.max_vfos
+        self.max_demod_timeout = 60
+
+        self.en_fm_demod = False
+        self.vfo_fm_demod = [False] * self.max_vfos
+        self.fm_demod_channels = [None] * self.max_vfos
+        self.fm_demod_channels_thetas = [[]] * self.max_vfos
+        self.iq_channels = [None] * self.max_vfos
 
         self.active_vfos = 1
         self.output_vfo = 0
@@ -135,6 +166,9 @@ class SignalProcessor(threading.Thread):
         self.en_peak_hold = False
 
         self.latency = 100
+        self.processing_time = 0
+        self.timestamp = int(time.time() * 1000)
+        self.gps_timestamp = int(0)
 
         # Output Data format. XML for Kerberos, CSV for Kracken, JSON future
         self.DOA_data_format = "Kraken App"  # XML, CSV, or JSON
@@ -146,17 +180,27 @@ class SignalProcessor(threading.Thread):
         self.longitude = 0.0
         self.fixed_heading = False
         self.heading = 0.0
+        self.time_of_last_invalid_heading = time.time()
         self.altitude = 0.0
         self.speed = 0.0
         self.hasgps = hasgps
         self.usegps = False
+        self.gps_min_speed_for_valid_heading = MIN_SPEED_FOR_VALID_HEADING
+        self.gps_min_duration_for_valid_heading = MIN_DURATION_FOR_VALID_HEADING
         self.gps_connected = False
         self.krakenpro_key = "0"
         self.RDF_mapper_server = "http://MY_RDF_MAPPER_SERVER.com/save.php"
         self.full_rest_server = "http://MY_REST_SERVER.com/save.php"
         self.pool = Pool()
-        self.rdf_mapper_last_write_time = 0
+        self.rdf_mapper_last_write_time = time.time()
         self.doa_max_list = [-1] * self.max_vfos
+
+        self.theta_0_list = []
+        self.freq_list = []
+        self.doa_result_log_list = []
+        self.confidence_list = []
+        self.max_power_level_list = []
+        self.fm_demod_channel_list = []
 
         # TODO: NEED to have a funtion to update the file name if changed in the web ui
         self.data_recording_file_name = "mydata.csv"
@@ -164,7 +208,30 @@ class SignalProcessor(threading.Thread):
         self.data_record_fd = open(data_recording_file_path, "a+")
         self.en_data_record = False
         self.write_interval = 1
-        self.last_write_time = [0] * self.max_vfos
+        self.last_write_time = [time.time()] * self.max_vfos
+
+        self.adc_overdrive = False
+        self.number_of_correlated_sources = []
+        self.snrs = []
+        self.dropped_frames = 0
+
+    @property
+    def vfo_demod_modes(self):
+        vfo_demod = [self.vfo_default_demod] * self.max_vfos
+        for i in range(len(self.vfo_demod)):
+            demod = self.vfo_demod[i]
+            if demod != "Default":
+                vfo_demod[i] = demod
+        return vfo_demod
+
+    @property
+    def vfo_iq_enabled(self):
+        vfo_iq = [True if self.vfo_default_iq == "True" else False] * self.max_vfos
+        for i in range(len(self.vfo_iq)):
+            demod = self.vfo_iq[i]
+            if demod != "Default":
+                vfo_iq[i] = True if demod == "True" else False
+        return vfo_iq
 
     def resetPeakHold(self):
         if self.spectrum_fig_type == "Single":
@@ -187,8 +254,15 @@ class SignalProcessor(threading.Thread):
                 self.is_running = True
                 que_data_packet = []
 
+                self.timestamp = self.module_receiver.iq_header.time_stamp
+
+                if self.hasgps and self.usegps:
+                    self.update_location_and_timestamp()
+
                 # -----> ACQUIRE NEW DATA FRAME <-----
                 self.module_receiver.get_iq_online()
+                self.adc_overdrive = self.module_receiver.iq_header.adc_overdrive_flags
+
                 start_time = time.time()
 
                 # Check frame type for processing
@@ -214,10 +288,16 @@ class SignalProcessor(threading.Thread):
 
                 self.data_ready = False
 
-                if en_proc:
-                    self.processed_signal = np.ascontiguousarray(
-                        self.module_receiver.iq_samples
-                    )  # self.module_receiver.iq_samples.copy()
+                if en_proc and not self.module_receiver.iq_samples.size:
+                    if self.dropped_frames:
+                        logging.error(
+                            """The data frame was lost while processing was active!\n
+                            This might indicate issues with USB data cable or USB host,\n
+                            inadequate power supply, overloaded CPU, wrong host OS settings, etc."""
+                        )
+                    self.dropped_frames += 1
+                elif en_proc:
+                    self.processed_signal = np.ascontiguousarray(self.module_receiver.iq_samples)
                     sampling_freq = self.module_receiver.iq_header.sampling_freq
 
                     global_decimation_factor = max(
@@ -306,14 +386,16 @@ class SignalProcessor(threading.Thread):
                             DOA_str = ""
                             confidence_str = ""
                             max_power_level_str = ""
-                            doa_result_log = np.array([])
+                            doa_result_log = np.empty(0)
 
-                            theta_0_list = []
-                            DOA_str_list = []
-                            confidence_str_list = []
-                            max_power_level_str_list = []
-                            freq_list = []
-                            doa_result_log_list = []
+                            self.theta_0_list.clear()
+                            self.freq_list.clear()
+                            self.doa_result_log_list.clear()
+                            self.max_power_level_list.clear()
+                            self.confidence_list.clear()
+                            self.number_of_correlated_sources.clear()
+                            self.snrs.clear()
+                            self.fm_demod_channel_list.clear()
 
                             for i in range(active_vfos):
                                 # If chanenl freq is out of bounds for the current tuned bandwidth, reset to the middle freq
@@ -385,6 +467,9 @@ class SignalProcessor(threading.Thread):
 
                                 # -----> DoA ESIMATION <-----
 
+                                # datetime object containing current date and time
+                                now = datetime.now()
+                                now_dt_str = now.strftime("%d-%b-%Y_%Hh%Mm%Ss")
                                 if (
                                     self.en_DOA_estimation
                                     and self.channel_number > 1
@@ -393,12 +478,46 @@ class SignalProcessor(threading.Thread):
                                 ):
                                     write_freq = int(self.vfo_freq[i])
                                     # Do channelization
+                                    if self.vfo_demod_modes[i] == "FM":
+                                        decimate_sampling_freq = 48_000
+                                        decimation_factor = int(sampling_freq / decimate_sampling_freq)
+
+                                    fir_order_factor = max(self.vfo_fir_order_factor[i], DEFAULT_VFO_FIR_ORDER_FACTOR)
                                     vfo_channel = channelize(
                                         self.processed_signal,
                                         freq,
                                         decimation_factor,
+                                        fir_order_factor,
                                         sampling_freq,
                                     )
+                                    iq_channel = vfo_channel[1]
+
+                                    self.vfo_time[i] += self.processed_signal[1].size / sampling_freq
+                                    if 0 < self.max_demod_timeout < self.vfo_time[i] and (
+                                        self.vfo_demod_modes[i] == "FM" or self.vfo_iq_enabled[i]
+                                    ):
+                                        self.vfo_blocked[i] = True
+                                        self.vfo_demod_channel[i] = None
+                                        self.vfo_theta_channel[i] = []
+                                        self.vfo_iq_channel[i] = None
+                                        continue
+
+                                    if self.vfo_demod_modes[i] == "FM":
+                                        fm_demod_channel = fm_demod(iq_channel, decimate_sampling_freq, self.vfo_bw[i])
+                                        if self.vfo_demod_channel[i] is not None:
+                                            self.vfo_demod_channel[i] = np.concatenate(
+                                                (self.vfo_demod_channel[i], fm_demod_channel)
+                                            )
+                                        else:
+                                            self.vfo_demod_channel[i] = fm_demod_channel
+
+                                    if self.vfo_iq_enabled[i]:
+                                        if self.vfo_iq_channel[i] is not None:
+                                            self.vfo_iq_channel[i] = np.concatenate(
+                                                (self.vfo_iq_channel[i], iq_channel)
+                                            )
+                                        else:
+                                            self.vfo_iq_channel[i] = iq_channel
 
                                     # Method to check IQ diffs when noise source forced ON
                                     # iq_diffs = calc_sync(self.processed_signal)
@@ -420,201 +539,82 @@ class SignalProcessor(threading.Thread):
                                     confidence_str = "{:.2f}".format(np.max(conf_val))
                                     max_power_level_str = "{:.1f}".format((np.maximum(-100, max_amplitude)))
 
-                                    theta_0_list.append(theta_0)
-                                    DOA_str_list.append(DOA_str)
-                                    confidence_str_list.append(confidence_str)
-                                    max_power_level_str_list.append(max_power_level_str)
-                                    freq_list.append(write_freq)
-                                    doa_result_log_list.append(doa_result_log)
+                                    if self.vfo_demod_modes[i] or self.vfo_iq_enabled[i]:
+                                        if theta_0 not in self.vfo_theta_channel[i]:
+                                            self.vfo_theta_channel[i].append(theta_0)
+
+                                    self.theta_0_list.append(theta_0)
+                                    self.confidence_list.append(np.max(conf_val))
+                                    self.max_power_level_list.append(np.maximum(-100, max_amplitude))
+                                    self.freq_list.append(write_freq)
+                                    self.doa_result_log_list.append(doa_result_log)
+                                else:
+                                    self.vfo_time[i] = 0
+                                    self.vfo_blocked[i] = False
+                                    fm_demod_channel = self.vfo_demod_channel[i]
+                                    iq_channel = self.vfo_iq_channel[i]
+                                    thetas = self.vfo_theta_channel[i]
+                                    vfo_freq = int(self.vfo_freq[i])
+                                    self.fm_demod_channel_list.append(
+                                        (now_dt_str, vfo_freq, fm_demod_channel, iq_channel, thetas)
+                                    )
+                                    self.vfo_demod_channel[i] = None
+                                    self.vfo_theta_channel[i] = []
+                                    self.vfo_iq_channel[i] = None
 
                             que_data_packet.append(["doa_thetas", self.DOA_theta])
                             que_data_packet.append(["DoA Result", doa_result_log])
                             que_data_packet.append(["DoA Max", theta_0])
                             que_data_packet.append(["DoA Confidence", conf_val])
                             que_data_packet.append(["DoA Squelch", update_list])
-
-                            # Do Kraken App first as currently its the only one supporting multi-vfo out
-                            if (
-                                self.DOA_data_format == "Kraken App"
-                                or self.en_data_record
-                                or self.DOA_data_format == "Kraken Pro Local"
-                                or self.DOA_data_format == "Kraken Pro Remote"
-                                or self.DOA_data_format == "RDF Mapper"
-                                or self.DOA_data_format == "DF Aggregator"
-                                or self.DOA_data_format == "Full POST"
-                            ):  # and len(freq_list) > 0:
-                                epoch_time = int(time.time() * 1000)
-                                message = ""
-                                for j in range(len(freq_list)):
-                                    # KrakenSDR Android App Output
-                                    sub_message = ""
-                                    sub_message += f"{epoch_time}, {DOA_str_list[j]}, {confidence_str_list[j]}, {max_power_level_str_list[j]}, "
-                                    sub_message += (
-                                        f"{freq_list[j]}, {self.DOA_ant_alignment}, {self.latency}, {self.station_id}, "
-                                    )
-                                    sub_message += (
-                                        f"{self.latitude}, {self.longitude}, {self.heading}, {self.heading}, "
-                                    )
-                                    sub_message += "GPS, R, R, R, R"  # Reserve 6 entries for other things # NOTE: Second heading is reserved for GPS heading / compass heading differentiation
-
-                                    doa_result_log = doa_result_log_list[j] + np.abs(np.min(doa_result_log_list[j]))
-                                    for i in range(len(doa_result_log)):
-                                        sub_message += ", " + "{:.2f}".format(doa_result_log[i])
-
-                                    sub_message += " \n"
-
-                                    if self.en_data_record:
-                                        time_elapsed = (
-                                            time.time() - self.last_write_time[j]
-                                        )  # Make a list of 16 last_write_times
-                                        if time_elapsed > self.write_interval:
-                                            self.last_write_time[j] = time.time()
-                                            self.data_record_fd.write(sub_message)
-
-                                    message += sub_message
-
-                                if (
-                                    self.DOA_data_format == "Kraken App"
-                                    or self.DOA_data_format == "Kraken Pro Local"
-                                    or self.DOA_data_format == "Kraken Pro Remote"
-                                    or self.DOA_data_format == "RDF Mapper"
-                                    or self.DOA_data_format == "DF Aggregator"
-                                    or self.DOA_data_format == "Full POST"
-                                ):
-                                    self.DOA_res_fd.seek(0)
-                                    self.DOA_res_fd.write(message)
-                                    self.DOA_res_fd.truncate()
-
-                            # Now create output for apps that only take one VFO
-                            DOA_str = str(int(theta_0))
-                            confidence_str = "{:.2f}".format(np.max(conf_val))
-                            max_power_level_str = "{:.1f}".format((np.maximum(-100, max_amplitude)))
-
-                            # Outside the foor loop at this indent
                             que_data_packet.append(["DoA Max List", self.doa_max_list])
 
-                            if self.DOA_data_format == "DF Aggregator":
-                                self.wr_xml(
-                                    self.station_id,
-                                    DOA_str,
-                                    confidence_str,
-                                    max_power_level_str,
-                                    write_freq,
-                                    self.latitude,
-                                    self.longitude,
-                                    self.heading,
-                                )
-                            elif self.DOA_data_format == "Kerberos App":
-                                self.wr_csv(
-                                    self.station_id,
-                                    DOA_str,
-                                    confidence_str,
-                                    max_power_level_str,
-                                    write_freq,
-                                    doa_result_log,
-                                    self.latitude,
-                                    self.longitude,
-                                    self.heading,
-                                    "Kerberos",
-                                )
-                            elif self.DOA_data_format == "Kraken Pro Local":
-                                self.wr_json(
-                                    self.station_id,
-                                    DOA_str,
-                                    confidence_str,
-                                    max_power_level_str,
-                                    write_freq,
-                                    doa_result_log,
-                                    self.latitude,
-                                    self.longitude,
-                                    self.heading,
-                                )
-                            elif self.DOA_data_format == "Kraken Pro Remote":
-                                self.wr_json(
-                                    self.station_id,
-                                    DOA_str,
-                                    confidence_str,
-                                    max_power_level_str,
-                                    write_freq,
-                                    doa_result_log,
-                                    self.latitude,
-                                    self.longitude,
-                                    self.heading,
-                                )
-                            elif self.DOA_data_format == "RDF Mapper":
-                                epoch_time = int(time.time() * 1000)
+                            def adjust_theta(theta):
+                                if self.doa_measure == "Compass":
+                                    return (360 - theta + self.compass_offset) % 360
+                                else:
+                                    return theta
 
-                                time_elapsed = time.time() - self.rdf_mapper_last_write_time
-                                if (
-                                    time_elapsed > 1
-                                ):  # Upload to RDF Mapper server only every 1s to ensure we dont overload his server
-                                    self.rdf_mapper_last_write_time = time.time()
-                                    elat, elng = calculate_end_lat_lng(
-                                        self.latitude,
-                                        self.longitude,
-                                        int(DOA_str),
-                                        self.heading,
+                            def average_thetas(thetas):
+                                avg_theta = sum(thetas) / len(thetas)
+                                diff_thetas = copy.copy(thetas)
+                                for i in range(len(diff_thetas)):
+                                    diff_thetas[i] = abs(diff_thetas[i] - avg_theta)
+
+                                return avg_theta, max(diff_thetas)
+
+                            for (
+                                now_dt_str,
+                                vfo_freq,
+                                fm_demod_channel,
+                                iq_channel,
+                                thetas,
+                            ) in self.fm_demod_channel_list:
+                                if fm_demod_channel is None and iq_channel is None:
+                                    continue
+                                avg_theta, max_diff_theta = average_thetas(thetas)
+                                if max_diff_theta > 10:
+                                    doa_max_str = []
+                                    for theta in thetas:
+                                        doa_max_str.append(f"{adjust_theta(theta):.1f}")
+                                    doa_max_str = "_".join(doa_max_str)
+                                else:
+                                    doa_max_str = f"{adjust_theta(avg_theta):.1f}"
+
+                                if fm_demod_channel is not None:
+                                    record_file_name = f"{now_dt_str},FM_{vfo_freq / 1e6:.3f}MHz"
+                                    Path(f"{self.wav_record_path}/").mkdir(parents=True, exist_ok=True)
+                                    write_wav(
+                                        f"{self.wav_record_path}/{record_file_name},DOA_{doa_max_str}.wav",
+                                        48_000,
+                                        fm_demod_channel,
                                     )
-                                    rdf_post = {
-                                        "id": self.station_id,
-                                        "time": str(epoch_time),
-                                        "slat": str(self.latitude),
-                                        "slng": str(self.longitude),
-                                        "elat": str(elat),
-                                        "elng": str(elng),
-                                    }
-                                    try:
-                                        # out = requests.post(self.RDF_mapper_server, data = rdf_post, timeout=5)
-                                        self.pool.apply_async(
-                                            requests.post,
-                                            args=[self.RDF_mapper_server, rdf_post],
-                                        )
-                                    except Exception as e:
-                                        print(f"NO CONNECTION: Invalid RDF Mapper Server: {e}")
-                            elif self.DOA_data_format == "Full POST":
-                                epoch_time = int(time.time() * 1000)
-
-                                time_elapsed = time.time() - self.rdf_mapper_last_write_time
-                                if time_elapsed > 1:  # reuse RDF mapper timer, it works the same
-                                    self.rdf_mapper_last_write_time = time.time()
-
-                                    message = ""
-                                    if doa_result_log:
-                                        doa_result_log = doa_result_log + np.abs(np.min(doa_result_log))
-                                        for i in range(len(doa_result_log)):
-                                            message += ", " + "{:.2f}".format(doa_result_log[i])
-
-                                    post = {
-                                        "id": self.station_id,
-                                        "ip": myip,
-                                        "time": str(epoch_time),
-                                        "lat": str(self.latitude),
-                                        "lng": str(self.longitude),
-                                        "gpsheading": str(self.heading),
-                                        "radiobearing": DOA_str,
-                                        "conf": confidence_str,
-                                        "power": max_power_level_str,
-                                        "freq": str(write_freq),
-                                        "anttype": self.DOA_ant_alignment,
-                                        "latency": str(self.latency),
-                                        "doaarray": message,
-                                    }
-                                    try:
-                                        # out = requests.post(self.RDF_mapper_server, data = rdf_post, timeout=5)
-                                        self.pool.apply_async(
-                                            requests.post,
-                                            args=[self.RDF_mapper_server, post],
-                                        )
-                                    except Exception as e:
-                                        print(f"NO CONNECTION: Invalid Server: {e}")
-                            elif self.DOA_data_format == "Kraken App":
-                                pass  # Just do nothing, stop the invalid doa result error from showing
-                            else:
-                                self.logger.error(f"Invalid DOA Result data format: {self.DOA_data_format}")
-
-                            if self.hasgps and self.usegps:
-                                self.update_location()
+                                if iq_channel is not None:
+                                    record_file_name = f"{now_dt_str},IQ_{vfo_freq / 1e6:.3f}MHz"
+                                    Path(f"{self.iq_record_path}").mkdir(parents=True, exist_ok=True)
+                                    iq_channel.tofile(f"{self.iq_record_path}/{record_file_name},DOA_{doa_max_str}.iq")
                     except Exception:
+                        self.logger.error(traceback.format_exc())
                         self.data_ready = False
 
                     # -----> SPECTRUM PROCESSING <-----
@@ -624,14 +624,191 @@ class SignalProcessor(threading.Thread):
                         )
                         que_data_packet.append(["spectrum", spectrum_plot_data])
 
-                    # Record IQ samples
-                    if self.en_record:
-                        # TODO: Implement IQ frame recording
-                        self.logger.error(
-                            "Saving IQ samples to npy is obsolete, IQ Frame saving is currently not implemented"
-                        )
+                    daq_cpi = int(
+                        self.module_receiver.iq_header.cpi_length * 1000 / self.module_receiver.iq_header.sampling_freq
+                    )
+                    # We don't include processing latency here, because reported timestamp marks end of the data frame
+                    # so latency is essentially an acquisition time.
+                    self.latency = daq_cpi
+                    self.processing_time = int(1000 * (time.time() - start_time))
+
+                    if self.data_ready and self.theta_0_list:
+                        # Do Kraken App first as currently its the only one supporting multi-vfo out
+                        if (
+                            self.DOA_data_format == "Kraken App"
+                            or self.en_data_record
+                            or self.DOA_data_format == "Kraken Pro Local"
+                            or self.DOA_data_format == "Kraken Pro Remote"
+                            or self.DOA_data_format == "RDF Mapper"
+                            or self.DOA_data_format == "DF Aggregator"
+                            or self.DOA_data_format == "Full POST"
+                        ):  # and len(freq_list) > 0:
+                            message = ""
+                            for j, freq in enumerate(self.freq_list):
+                                # KrakenSDR Android App Output
+                                sub_message = ""
+                                sub_message += f"{self.timestamp}, {self.theta_0_list[j]}, {self.confidence_list[j]}, {self.max_power_level_list[j]}, "
+                                sub_message += f"{freq}, {self.DOA_ant_alignment}, {self.latency}, {self.station_id}, "
+                                sub_message += f"{self.latitude}, {self.longitude}, {self.heading}, {self.heading}, "
+                                sub_message += "GPS, R, R, R, R"  # Reserve 6 entries for other things # NOTE: Second heading is reserved for GPS heading / compass heading differentiation
+
+                                doa_result_log = self.doa_result_log_list[j] + np.abs(
+                                    np.min(self.doa_result_log_list[j])
+                                )
+                                for i in range(len(doa_result_log)):
+                                    sub_message += ", " + "{:.2f}".format(doa_result_log[i])
+
+                                sub_message += " \n"
+
+                                if self.en_data_record:
+                                    time_elapsed = (
+                                        time.time() - self.last_write_time[j]
+                                    )  # Make a list of 16 last_write_times
+                                    if time_elapsed > self.write_interval:
+                                        self.last_write_time[j] = time.time()
+                                        self.data_record_fd.write(sub_message)
+
+                                message += sub_message
+
+                            if (
+                                self.DOA_data_format == "Kraken App"
+                                or self.DOA_data_format == "Kraken Pro Local"
+                                or self.DOA_data_format == "Kraken Pro Remote"
+                                or self.DOA_data_format == "RDF Mapper"
+                                or self.DOA_data_format == "DF Aggregator"
+                                or self.DOA_data_format == "Full POST"
+                            ):
+                                self.DOA_res_fd.seek(0)
+                                self.DOA_res_fd.write(message)
+                                self.DOA_res_fd.truncate()
+
+                        # Now create output for apps that only take one VFO
+                        DOA_str = f"{int(self.theta_0_list[0])}"
+                        confidence_str = f"{np.max(self.confidence_list[0]):.2f}"
+                        max_power_level_str = f"{np.maximum(-100, self.max_power_level_list[0]):.1f}"
+                        doa_result_log = self.doa_result_log_list[0]
+                        write_freq = self.freq_list[0]
+
+                        if self.DOA_data_format == "DF Aggregator":
+                            self.wr_xml(
+                                self.station_id,
+                                DOA_str,
+                                confidence_str,
+                                max_power_level_str,
+                                write_freq,
+                                self.latitude,
+                                self.longitude,
+                                self.heading,
+                                self.adc_overdrive,
+                                self.number_of_correlated_sources[0],
+                                self.snrs[0],
+                            )
+                        elif self.DOA_data_format == "Kerberos App":
+                            self.wr_csv(
+                                self.station_id,
+                                DOA_str,
+                                confidence_str,
+                                max_power_level_str,
+                                write_freq,
+                                doa_result_log,
+                                self.latitude,
+                                self.longitude,
+                                self.heading,
+                                "Kerberos",
+                            )
+                        elif self.DOA_data_format == "Kraken Pro Local":
+                            self.wr_json(
+                                self.station_id,
+                                DOA_str,
+                                confidence_str,
+                                max_power_level_str,
+                                write_freq,
+                                doa_result_log,
+                                self.latitude,
+                                self.longitude,
+                                self.heading,
+                                self.adc_overdrive,
+                                self.number_of_correlated_sources[0],
+                                self.snrs[0],
+                            )
+                        elif self.DOA_data_format == "Kraken Pro Remote":
+                            self.wr_json(
+                                self.station_id,
+                                DOA_str,
+                                confidence_str,
+                                max_power_level_str,
+                                write_freq,
+                                doa_result_log,
+                                self.latitude,
+                                self.longitude,
+                                self.heading,
+                                self.adc_overdrive,
+                                self.number_of_correlated_sources[0],
+                                self.snrs[0],
+                            )
+                        elif self.DOA_data_format == "RDF Mapper":
+                            time_elapsed = time.time() - self.rdf_mapper_last_write_time
+                            if (
+                                time_elapsed > 1
+                            ):  # Upload to RDF Mapper server only every 1s to ensure we dont overload his server
+                                self.rdf_mapper_last_write_time = time.time()
+                                elat, elng = calculate_end_lat_lng(
+                                    self.latitude, self.longitude, int(DOA_str), self.heading
+                                )
+                                rdf_post = {
+                                    "id": self.station_id,
+                                    "time": str(self.timestamp),
+                                    "slat": str(self.latitude),
+                                    "slng": str(self.longitude),
+                                    "elat": str(elat),
+                                    "elng": str(elng),
+                                }
+                                try:
+                                    self.pool.apply_async(requests.post, args=[self.RDF_mapper_server, rdf_post])
+                                except Exception as e:
+                                    print(f"NO CONNECTION: Invalid RDF Mapper Server: {e}")
+                        elif self.DOA_data_format == "Full POST":
+                            time_elapsed = time.time() - self.rdf_mapper_last_write_time
+                            if time_elapsed > 1:  # reuse RDF mapper timer, it works the same
+                                self.rdf_mapper_last_write_time = time.time()
+
+                                message = ""
+                                if doa_result_log:
+                                    doa_result_log = doa_result_log + np.abs(np.min(doa_result_log))
+                                    for i in range(len(doa_result_log)):
+                                        message += ", " + "{:.2f}".format(doa_result_log[i])
+
+                                post = {
+                                    "id": self.station_id,
+                                    "ip": myip,
+                                    "time": str(self.timestamp),
+                                    "gps_timestamp": str(self.gps_timestamp),
+                                    "lat": str(self.latitude),
+                                    "lng": str(self.longitude),
+                                    "gpsheading": str(self.heading),
+                                    "radiobearing": DOA_str,
+                                    "conf": confidence_str,
+                                    "power": max_power_level_str,
+                                    "freq": str(write_freq),
+                                    "anttype": self.DOA_ant_alignment,
+                                    "latency": str(self.latency),
+                                    "processing_time": str(self.processing_time),
+                                    "doaarray": message,
+                                    "adc_overdrive": self.adc_overdrive,
+                                    "num_corr_sources": self.number_of_correlated_sources[0],
+                                    "snr_db": self.snrs[0],
+                                }
+                                try:
+                                    self.pool.apply_async(requests.post, args=[self.RDF_mapper_server, post])
+                                except Exception as e:
+                                    print(f"NO CONNECTION: Invalid Server: {e}")
+                        elif self.DOA_data_format == "Kraken App":
+                            pass  # Just do nothing, stop the invalid doa result error from showing
+                        else:
+                            self.logger.error(f"Invalid DOA Result data format: {self.DOA_data_format}")
 
                 stop_time = time.time()
+
                 que_data_packet.append(["update_rate", stop_time - start_time])
                 que_data_packet.append(
                     [
@@ -682,11 +859,14 @@ class SignalProcessor(threading.Thread):
                 # Too few channels for spatial smoothing, skipping it.
                 pass
 
-        elif self.DOA_decorrelation_method == "FBTOEP":
-            R = fb_toeplitz_reconstruction(R)
-
         M = R.shape[0]
-        scanning_vectors = []
+
+        # If rank of the correlation matrix is not equal to its full one,
+        # then we are likely dealing with correlated sources and (or) low SNR signals
+        number_of_correlated_sources = M - np.linalg.matrix_rank(R)
+        self.number_of_correlated_sources.append(number_of_correlated_sources)
+        self.snrs.append(SNR(R))
+
         frq_ratio = vfo_freq / self.module_receiver.daq_center_freq
         inter_element_spacing = self.DOA_inter_elem_space * frq_ratio
 
@@ -705,6 +885,8 @@ class SignalProcessor(threading.Thread):
             scanning_vectors = gen_scanning_vectors_custom(
                 M, self.custom_array_x * frq_ratio, self.custom_array_y * frq_ratio
             )
+        else:
+            scanning_vectors = np.empty((0, 0))
 
         # DOA estimation
         if self.DOA_algorithm == "Bartlett":  # self.en_DOA_Bartlett:
@@ -740,7 +922,7 @@ class SignalProcessor(threading.Thread):
     # Enable GPS
     def enable_gps(self):
         if self.hasgps:
-            if gpsd.state == {}:
+            if not gpsd.state:
                 gpsd.connect()
                 self.logger.info("Connecting to GPS")
                 self.gps_connected = True
@@ -750,33 +932,40 @@ class SignalProcessor(threading.Thread):
         return self.gps_connected
 
     # Get GPS Data
-    def update_location(self):
+    def update_location_and_timestamp(self):
         if self.gps_connected:
             try:
                 packet = gpsd.get_current()
                 self.latitude, self.longitude = packet.position()
-                if not self.fixed_heading:
-                    self.heading = round(packet.movement().get("track"), 1)
+                if (not self.fixed_heading) and (packet.speed() >= self.gps_min_speed_for_valid_heading):
+                    if (time.time() - self.time_of_last_invalid_heading) >= self.gps_min_duration_for_valid_heading:
+                        self.heading = round(packet.movement().get("track"), 1)
+                else:
+                    self.time_of_last_invalid_heading = time.time()
                 self.gps_status = "Connected"
-            except (gpsd.NoFixError, UserWarning):
+                self.gps_timestamp = int(round(1000.0 * packet.get_time().timestamp()))
+            except (gpsd.NoFixError, UserWarning, ValueError, BrokenPipeError):
                 self.latitude = self.longitude = 0.0
-                self.heading if self.fixed_heading else 0.0
+                self.gps_timestamp = 0
+                self.heading = self.heading if self.fixed_heading else 0.0
                 self.logger.error("gpsd error, nofix")
                 self.gps_status = "Error"
         else:
             self.logger.error("Trying to use GPS, but can't connect to gpsd")
             self.gps_status = "Error"
 
-    def wr_xml(self, station_id, doa, conf, pwr, freq, latitude, longitude, heading):
+    def wr_xml(
+        self, station_id, doa, conf, pwr, freq, latitude, longitude, heading, adc_overdrive, num_corr_sources, snr_db
+    ):
         # Kerberos-ify the data
         confidence_str = "{}".format(np.max(int(float(conf) * 100)))
         max_power_level_str = "{:.1f}".format((np.maximum(-100, float(pwr) + 100)))
 
-        epoch_time = int(1000 * round(time.time(), 3))
         # create the file structure
         data = ET.Element("DATA")
         xml_st_id = ET.SubElement(data, "STATION_ID")
         xml_time = ET.SubElement(data, "TIME")
+        xml_gps_time = ET.SubElement(data, "GPS_TIME")
         xml_freq = ET.SubElement(data, "FREQUENCY")
         xml_location = ET.SubElement(data, "LOCATION")
         xml_latitide = ET.SubElement(xml_location, "LATITUDE")
@@ -785,9 +974,15 @@ class SignalProcessor(threading.Thread):
         xml_doa = ET.SubElement(data, "DOA")
         xml_pwr = ET.SubElement(data, "PWR")
         xml_conf = ET.SubElement(data, "CONF")
+        xml_latency = ET.SubElement(data, "LATENCY")
+        xml_processing_time = ET.SubElement(data, "PROCESSING_TIME")
+        xml_adc_overdrive = ET.SubElement(data, "ADC_OVERDRIVE")
+        xml_num_corr_sources = ET.SubElement(data, "NUM_CORRELATED_SOURCES")
+        xml_snr = ET.SubElement(data, "SNR_DB")
 
         xml_st_id.text = str(station_id)
-        xml_time.text = str(epoch_time)
+        xml_time.text = str(self.timestamp)
+        xml_gps_time.text = str(self.gps_timestamp)
         xml_freq.text = str(freq / 1000000)
         xml_latitide.text = str(latitude)
         xml_longitude.text = str(longitude)
@@ -795,6 +990,11 @@ class SignalProcessor(threading.Thread):
         xml_doa.text = doa
         xml_pwr.text = max_power_level_str
         xml_conf.text = confidence_str
+        xml_latency.text = f"{self.latency}"
+        xml_processing_time.text = f"{self.processing_time}"
+        xml_adc_overdrive.text = str(adc_overdrive)
+        xml_num_corr_sources.text = str(num_corr_sources)
+        xml_snr.text = str(snr_db)
 
         # create a new XML file with the results
         html_str = ET.tostring(data, encoding="unicode")
@@ -817,10 +1017,8 @@ class SignalProcessor(threading.Thread):
         app_type,
     ):
         if app_type == "Kraken":
-            epoch_time = int(time.time() * 1000)
-
             # KrakenSDR Android App Output
-            message = f"{epoch_time}, {DOA_str}, {confidence_str}, {max_power_level_str}, "
+            message = f"{self.timestamp}, {DOA_str}, {confidence_str}, {max_power_level_str}, "
             message += f"{freq}, {self.DOA_ant_alignment}, {self.latency}, {station_id}, "
             message += f"{latitude}, {longitude}, {heading}, {heading}, "
             message += "GPS, R, R, R, R"  # Reserve 6 entries for other things # NOTE: Second heading is reserved for GPS heading / compass heading differentiation
@@ -837,7 +1035,7 @@ class SignalProcessor(threading.Thread):
             confidence_str = "{}".format(np.max(int(float(confidence_str) * 100)))
             max_power_level_str = "{:.1f}".format((np.maximum(-100, float(max_power_level_str) + 100)))
 
-            message = str(int(time.time() * 1000)) + ", " + DOA_str + ", " + confidence_str + ", " + max_power_level_str
+            message = str(self.timestamp) + ", " + DOA_str + ", " + confidence_str + ", " + max_power_level_str
             html_str = (
                 "<DATA>\n<DOA>"
                 + DOA_str
@@ -863,6 +1061,9 @@ class SignalProcessor(threading.Thread):
         latitude,
         longitude,
         heading,
+        adc_overdrive,
+        num_corr_sources,
+        snr_db,
     ):
         # KrakenSDR Flutter app out
         doaString = str("")
@@ -877,7 +1078,9 @@ class SignalProcessor(threading.Thread):
         #    doaString += ", " + "{:.2f}".format(doa_result_log[i])
 
         jsonDict = {}
-        jsonDict["tStamp"] = int(time.time() * 1000)
+        jsonDict["station_id"] = station_id
+        jsonDict["tStamp"] = self.timestamp
+        jsonDict["gps_timestamp"] = self.gps_timestamp
         jsonDict["latitude"] = str(latitude)
         jsonDict["longitude"] = str(longitude)
         jsonDict["gpsBearing"] = str(heading)
@@ -886,8 +1089,12 @@ class SignalProcessor(threading.Thread):
         jsonDict["power"] = max_power_level_str
         jsonDict["freq"] = freq  # self.module_receiver.daq_center_freq
         jsonDict["antType"] = self.DOA_ant_alignment
-        jsonDict["latency"] = 100
+        jsonDict["latency"] = self.latency
+        jsonDict["processing_time"] = self.processing_time
         jsonDict["doaArray"] = doaString
+        jsonDict["adc_overdrive"] = adc_overdrive
+        jsonDict["num_corr_sources"] = str(num_corr_sources)
+        jsonDict["snr_db"] = snr_db
 
         try:
             self.pool.apply_async(
@@ -947,7 +1154,7 @@ def calc_sync(iq_samples):
 
 # Reduce spectrum size for plotting purposes by taking the MAX val every few values
 # Significantly faster with numba once we added nb.prange
-@njit(fastmath=True, cache=True, parallel=True)
+@njit(fastmath=True, cache=True)
 def reduce_spectrum(spectrum, spectrum_size, channel_number):
     spectrum_elements = len(spectrum[:, 0])
 
@@ -962,7 +1169,7 @@ def reduce_spectrum(spectrum, spectrum_size, channel_number):
 # Get the FIR filter
 @lru_cache(maxsize=32)
 def get_fir(n, q, padd):
-    return signal.dlti(signal.firwin(n + 1, 1.0 / (q * padd), window="hann"), 1.0)
+    return signal.dlti(signal.firwin(n, 1.0 / (q * padd), window="hann"), 1.0)
 
 
 # Get the frequency rotation exponential
@@ -978,15 +1185,17 @@ def get_exponential(freq, sample_freq, sig_len):
     return np.ascontiguousarray(exponential)
 
 
-@njit(fastmath=True, cache=True, parallel=True)
+@njit(fastmath=True, cache=True)
 def numba_mult(a, b):
     return a * b
 
 
 # Memoize the total shift filter
 @lru_cache(maxsize=32)
-def shift_filter(decimation_factor, freq, sampling_freq, padd):
-    system = get_fir(decimation_factor * 2, decimation_factor, padd)
+def shift_filter(decimation_factor, fir_order_factor, freq, sampling_freq, padd):
+    fir_order = decimation_factor * fir_order_factor
+    fir_order = fir_order + (fir_order - 1) % 2
+    system = get_fir(fir_order, decimation_factor, padd)
     b = system.num
     a = system.den
     exponential = get_exponential(-freq, sampling_freq, len(b))
@@ -996,9 +1205,10 @@ def shift_filter(decimation_factor, freq, sampling_freq, padd):
 
 # This function takes the full data, and efficiently returns only a filtered and decimated requested channel
 # Efficient method: Create BANDPASS Filter for frequency of interest, decimate with that bandpass filter, then do the final shift
-@jit(fastmath=True, cache=True, parallel=True)
-def channelize(processed_signal, freq, decimation_factor, sampling_freq):
-    system = shift_filter(decimation_factor, freq, sampling_freq, 1.1)  # Decimate with a BANDPASS filter
+def channelize(processed_signal, freq, decimation_factor, fir_order_factor, sampling_freq):
+    system = shift_filter(
+        decimation_factor, fir_order_factor, freq, sampling_freq, 1.1
+    )  # Decimate with a BANDPASS filter
     decimated = signal.decimate(processed_signal, decimation_factor, ftype=system)
     exponential = get_exponential(
         freq, sampling_freq / decimation_factor, len(decimated[0, :])
@@ -1100,6 +1310,19 @@ def DOA_MUSIC(R, scanning_vectors, signal_dimension, angle_resolution=1):
     return ADORT
 
 
+# Rather naive way to estimate SNR (in dBs) based on the assumption that largest and smallest eigenvalues
+# of the correlation matrix corresponds to the powers of the signal plus noise  and noise respectively.
+# Even though it won't estimate SNR beyond dominant signal, if it is already quite small,
+# then any additional signals have even lower SNR.
+def SNR(R: np.ndarray) -> float:
+    ev = np.abs(scipy.linalg.eigvals(R))
+    ev.sort()
+    noise_power = ev[0]
+    signal_plus_noise_power = ev[-1]
+    snr = 10.0 * np.log10((signal_plus_noise_power - noise_power) / noise_power)
+    return snr
+
+
 def xi(uca_radius_m: float, frequency_Hz: float) -> Tuple[float, int]:
     wavelength_m = scipy.constants.speed_of_light / frequency_Hz
     x = 2.0 * np.pi * uca_radius_m / wavelength_m
@@ -1146,7 +1369,7 @@ def transform_to_phase_mode_space(signal: np.ndarray, uca_radius_m: float, frequ
 
 # Numba optimized version of pyArgus corr_matrix_estimate with "fast". About 2x faster on Pi4
 # @njit(fastmath=True, cache=True)
-def corr_matrix(X):
+def corr_matrix(X: np.ndarray) -> np.ndarray:
     N = X[0, :].size
     R = np.dot(X, X.conj().T)
     R = np.divide(R, N)

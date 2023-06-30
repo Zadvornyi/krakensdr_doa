@@ -33,8 +33,6 @@ import numpy as np
 from iq_header import IQHeader
 from shmemIface import inShmemIface
 
-# import copy
-
 
 class ReceiverRTLSDR:
     def __init__(self, data_que, data_interface="eth", logging_level=10):
@@ -68,7 +66,8 @@ class ReceiverRTLSDR:
         self.port = 5000
         self.rec_ip_addr = "127.0.0.1"  # Configured by the GUI prior to connection request
         self.socket_inst = socket.socket()
-        self.receiverBufferSize = 2**18  # Size of the Ethernet receiver buffer measured in bytes
+        # Size of the Ethernet receiver buffer measured in bytes
+        self.receiverBufferSize = 2**18
 
         # -> Shared memory
         root_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -79,10 +78,11 @@ class ReceiverRTLSDR:
         # Control interface
         self.ctr_iface_socket = socket.socket()
         self.ctr_iface_port = 5001
-        self.ctr_iface_thread_lock = Lock()  # Used to synchronize the operation of the ctr_iface thread
+        # Used to synchronize the operation of the ctr_iface thread
+        self.ctr_iface_thread_lock = Lock()
 
         self.iq_frame_bytes = None
-        self.iq_samples = None
+        self.iq_samples = np.empty(0)
         self.iq_header = IQHeader()
         self.M = 0  # Number of receiver channels, updated after establishing connection
 
@@ -193,22 +193,27 @@ class ReceiverRTLSDR:
 
             buffer = self.in_shmem_iface.buffers[active_buff_index]
 
-            iq_header_bytes = buffer[0:1024].tobytes()
-
+            iq_header_bytes = buffer[:1024].tobytes()
             self.iq_header.decode_header(iq_header_bytes)
 
-            # Inititalization from header - Set channel numbers
+            # Initialization from header - Set channel numbers
             if self.M == 0:
                 self.M = self.iq_header.active_ant_chs
 
             incoming_payload_size = (
-                self.iq_header.cpi_length * self.iq_header.active_ant_chs * 2 * int(self.iq_header.sample_bit_depth / 8)
+                self.iq_header.cpi_length * self.iq_header.active_ant_chs * 2 * (self.iq_header.sample_bit_depth // 8)
             )
-            if incoming_payload_size > 0:
-                iq_samples_in = (buffer[1024 : 1024 + incoming_payload_size].view(dtype=np.complex64)).reshape(
-                    self.iq_header.active_ant_chs, self.iq_header.cpi_length
-                )
-                self.iq_samples = iq_samples_in.copy()  # Must be .copy
+
+            shape = (self.iq_header.active_ant_chs, self.iq_header.cpi_length)
+            iq_samples_in = buffer[1024 : 1024 + incoming_payload_size].view(dtype=np.complex64).reshape(shape)
+            # self.iq_samples = iq_samples_in.copy()
+
+            # Reuse the memory allocated for self.iq_samples if it has the
+            # correct shape
+            if self.iq_samples.shape != shape:
+                self.iq_samples = np.empty(shape, dtype=np.complex64)
+
+            np.copyto(self.iq_samples, iq_samples_in)
 
             self.in_shmem_iface.send_ctr_buff_ready(active_buff_index)
 

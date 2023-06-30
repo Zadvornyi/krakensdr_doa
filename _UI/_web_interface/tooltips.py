@@ -130,6 +130,33 @@ dsp_config_tooltips = html.Div(
             placement="bottom",
             className="tooltip",
         ),
+        dbc.Tooltip(
+            [
+                html.P("VFO Default Demodulation that could be either None or FM"),
+                html.P("FM - frequency demodulation"),
+            ],
+            target="label_vfo_default_demod",
+            placement="bottom",
+            className="tooltip",
+        ),
+        dbc.Tooltip(
+            [
+                html.P("VFO Default IQ writing mode"),
+                html.P("False/True - disable/enable writing IQ samples to file"),
+            ],
+            target="label_vfo_default_iq",
+            placement="bottom",
+            className="tooltip",
+        ),
+        dbc.Tooltip(
+            [
+                html.P("Maximum Demod Time allows to disable writing signal on disk if it exceeded some timeout"),
+                html.P("0 means no timeout is applied"),
+            ],
+            target="label_max_demod_timeout",
+            placement="bottom",
+            className="tooltip",
+        ),
         # Antenna Spacing
         #    dbc.Tooltip([
         #        html.P("When ULA is selected: Spacing between antenna elements"),
@@ -630,6 +657,21 @@ station_parameters_tooltips = html.Div(
                 html.P("GPS Heading information is only reliable when you're moving."),
             ],
             target="fixed_heading_label",
+            placement="bottom",
+            className="tooltip",
+        ),
+        dbc.Tooltip(
+            [
+                html.P("Filter out unreliable heading"),
+                html.P("Most consumer-grade GPS modules require it to move to estimate heading."),
+                html.P("Typically those measurements are not reliable when speed is too low."),
+                html.P("Please set minimum speed and its minumum duration to filter out bogus heading readings."),
+                html.P(
+                    """Note that u-blox GPS modules might implement these logic internally, but it needs to be configured and activated."""
+                    """If you did so, then feel free to disable this filter by setting zero values."""
+                ),
+            ],
+            target="min_speed_heading_fields",
             placement="bottom",
             className="tooltip",
         ),

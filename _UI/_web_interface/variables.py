@@ -24,6 +24,7 @@ antennas_switcher_path = os.path.join(root_path, "_antennas_switcher")
 sys.path.insert(0, receiver_path)
 sys.path.insert(0, signal_processor_path)
 sys.path.insert(0, ui_path)
+sys.path.insert(0, antennas_switcher_path)
 
 daq_preconfigs_path = os.path.join(os.path.join(os.path.dirname(root_path), "heimdall_daq_fw"), "config_files")
 daq_config_filename = os.path.join(daq_subsystem_path, "daq_chain_config.ini")

@@ -5,9 +5,9 @@ class AntennasSwitcher:
     # switching frequency.
     setting = {
         "thresholds": [
-            200,
+            250,
             500,
-            800
+            3000
         ],
         "inputsOrderByBand": [
             0,

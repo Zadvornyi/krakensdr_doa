@@ -6,7 +6,7 @@ class AntennasSwitcher:
     setting = {
         "thresholds": [
             250,
-            500,
+            611,
             3000
         ],
         "inputsOrderByBand": [

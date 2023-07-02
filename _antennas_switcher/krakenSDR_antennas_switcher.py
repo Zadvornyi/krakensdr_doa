@@ -1,6 +1,6 @@
 import bisect
 import RPi.GPIO as GPIO
-
+#import OPi.GPIO as GPIO
 class AntennasSwitcher:
     # switching frequency.
     setting = {

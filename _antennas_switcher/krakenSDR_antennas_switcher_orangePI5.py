@@ -1,5 +1,6 @@
 import bisect
-import RPi.GPIO as GPIO
+import wiringpi
+from wiringpi import GPIO
 class AntennasSwitcher:
     # switching frequency.
     setting = {
@@ -16,16 +17,16 @@ class AntennasSwitcher:
         ]
     }
     # Set default pins for antenna switch control inputs.
-    gpio_sw_a = 12
-    gpio_sw_b = 18
+    gpio_sw_a = 6
+    gpio_sw_b = 10
 
     def __init__(self, daq_center_freq):
         # Init GPIOs.
         print('init antennas switcher.')
-        GPIO.cleanup()
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.gpio_sw_a, GPIO.OUT)
-        GPIO.setup(self.gpio_sw_b, GPIO.OUT)
+
+        wiringpi.wiringPiSetup()
+        wiringpi.pinMode(self.gpio_sw_a, GPIO.OUTPUT)
+        wiringpi.pinMode(self.gpio_sw_b, GPIO.OUTPUT)
 
         # Init center freq
         self.changeAntennas(daq_center_freq)
@@ -40,10 +41,13 @@ class AntennasSwitcher:
                     frequency)
             ]
             # Switching.
-            GPIO.output(self.gpio_sw_a, ab & 0x01)
-            GPIO.output(self.gpio_sw_b, ab & 0x02)
+            wiringpi.digitalWrite(self.gpio_sw_a, ab & 0x01)
+            wiringpi.digitalWrite(self.gpio_sw_b, ab & 0x02)
             # Send info response.
             print(frequency, 'frequency')
             print(f'AB state: {ab}')
         else:
             print('Wrong antennas switcher frequency configuration.')
+
+
+AntennasSwitcher(659)

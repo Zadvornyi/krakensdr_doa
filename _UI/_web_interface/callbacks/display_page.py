@@ -3,7 +3,7 @@ from maindash import app, web_interface
 
 # isort: on
 
-from dash_devices.dependencies import Input, Output
+from dash import Input, Output
 from kraken_web_config import generate_config_page_layout
 from kraken_web_doa import plot_doa
 from variables import doa_fig

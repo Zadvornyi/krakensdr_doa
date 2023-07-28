@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 
-import dash_html_components as html
 import ini_checker
+from dash import html
 from variables import daq_config_filename
 from views import daq_status_card, start_stop_card, system_control_card, tooltips
 from views.daq_config_card import get_daq_config_card_layout

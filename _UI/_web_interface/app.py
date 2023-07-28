@@ -28,7 +28,7 @@ from views import main
 app.layout = main.layout
 
 # It is workaround for splitting callbacks in separate files (run callbacks after layout)
-from callbacks import display_page, main, update_daq_params  # noqa: F401
+from callbacks import display_page  # , main, update_daq_params  # noqa: F401
 
 if __name__ == "__main__":
     # Debug mode does not work when the data interface is set to shared-memory

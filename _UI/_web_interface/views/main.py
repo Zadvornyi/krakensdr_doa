@@ -1,9 +1,8 @@
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 
 layout = html.Div(
     [
-        dcc.Location(id="url", children="/config", refresh=True),
+        dcc.Location(id="url", refresh=True),
         html.Div(
             [
                 html.Img(

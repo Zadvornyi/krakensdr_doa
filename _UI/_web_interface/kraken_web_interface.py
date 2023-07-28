@@ -14,7 +14,7 @@ from variables import (
 
 # isort: on
 
-from dash_devices.dependencies import Input
+from dash.dependencies import Input
 from krakenSDR_receiver import ReceiverRTLSDR
 
 # Import built-in modules

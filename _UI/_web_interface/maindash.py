@@ -1,4 +1,4 @@
-import dash_devices as dash
+import dash
 from kraken_web_interface import WebInterface
 from kraken_web_spectrum import init_spectrum_fig
 from variables import fig_layout, trace_colors

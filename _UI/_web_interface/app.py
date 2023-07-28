@@ -35,6 +35,7 @@ from callbacks import (  # noqa: F401
     main,
     gps_configuration,
     update_daq_params,
+    subprocess
 )
 
 if __name__ == "__main__":

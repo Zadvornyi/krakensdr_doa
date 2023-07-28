@@ -415,15 +415,15 @@ def toggle_beta_features(toggle_value):
 
     return toggle_output
 
-# @app.callback(
-#     Output("placeholder_update_rx", "children"),
-#     [Input("settings-refresh-timer", "n_intervals")],
-#     [State("url", "pathname")],
-# )
-# def settings_change_refresh(toggle_value, pathname):
-#     print(toggle_value, web_interface.needs_refresh, pathname, 'settings_change_refresh')
-#     if web_interface.needs_refresh:
-#         if pathname == "/" or pathname == "/init" or pathname == "/config":
-#             return "upd"
-#
-#     return 'settings_change_refresh'
+@app.callback(
+    Output("placeholder_update_rx", "children"),
+    [Input("settings-refresh-timer", "n_intervals")],
+    [State("url", "pathname")],
+)
+def settings_change_refresh(toggle_value, pathname):
+    print(toggle_value, web_interface.needs_refresh, pathname, 'settings_change_refresh')
+    # if web_interface.needs_refresh:
+    #     if pathname == "/" or pathname == "/init" or pathname == "/config":
+    #         return "upd"
+    #
+    # return 'settings_change_refresh'

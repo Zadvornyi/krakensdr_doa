@@ -2,7 +2,6 @@ import os
 import subprocess
 
 from dash import Input, Output, State, callback, dcc
-from dash.exceptions import PreventUpdate
 
 # isort: off
 from maindash import app, spectrum_fig, waterfall_fig, web_interface
@@ -20,13 +19,11 @@ from variables import (
     prevent_initial_call=True
 )
 def restart_sw_btn(n_clicks):
-    if n_clicks is None:
-        raise PreventUpdate
-    else:
+    if n_clicks:
         web_interface.logger.info("Restarting Software")
         root_path = os.path.dirname(os.path.dirname(os.path.dirname(current_path)))
         os.chdir(root_path)
-        subprocess.Popen(["bash", "kraken_doa_start.sh"])  # ,
+        subprocess.Popen(["bash", "kraken_doa_start.sh"])
 
 
 @app.callback(
@@ -35,9 +32,7 @@ def restart_sw_btn(n_clicks):
     prevent_initial_call=True
 )
 def restart_system_btn(n_clicks):
-    if n_clicks is None:
-        raise PreventUpdate
-    else:
+    if n_clicks:
         web_interface.logger.info("Restarting System")
         subprocess.call(["reboot"])
 
@@ -48,9 +43,7 @@ def restart_system_btn(n_clicks):
     prevent_initial_call=True
 )
 def shutdown_system_btn(n_clicks):
-    if n_clicks is None:
-        raise PreventUpdate
-    else:
+    if n_clicks:
         web_interface.logger.info("Shutting System Down")
         subprocess.call(["shutdown", "now"])
 
@@ -61,9 +54,7 @@ def shutdown_system_btn(n_clicks):
     prevent_initial_call=True
 )
 def clear_cache_btn(n_clicks):
-    if n_clicks is None:
-        raise PreventUpdate
-    else:
+    if n_clicks:
         responce_text = "Clearing Python and Numba Caches"
         web_interface.logger.info(responce_text)
         root_path = os.path.dirname(os.path.dirname(os.path.dirname(current_path)))

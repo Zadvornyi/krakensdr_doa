@@ -33,6 +33,7 @@ from callbacks import (  # noqa: F401
     doa_configuration,
     daq_reconfiguration,
     main,
+    gps_configuration,
     update_daq_params,
 )
 

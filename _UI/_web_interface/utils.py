@@ -84,6 +84,7 @@ def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
     #############################################
     #      Fetch new data from back-end ques    #
     #############################################
+    print('first fetch_dsp_data')
     try:
         # Fetch new data from the receiver module
         que_data_packet = web_interface.rx_data_que.get(False)
@@ -196,7 +197,7 @@ def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
     else:
         pass
         # Handle task here and call q.task_done()
-
+    print('second fetch_dsp_data')
     if (
         web_interface.pathname == "/config" or web_interface.pathname == "/" or web_interface.pathname == "/init"
     ) and daq_status_update_flag:
@@ -326,7 +327,7 @@ def update_daq_status(app, web_interface):
     #############################################
     #      Prepare UI component properties      #
     #############################################
-
+    print('update_daq_status')
     if web_interface.daq_conn_status == 1:
         if not web_interface.daq_cfg_iface_status:
             daq_conn_status_str = "Connected"

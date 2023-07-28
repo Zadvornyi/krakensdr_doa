@@ -8,10 +8,6 @@ from maindash import app, spectrum_fig, waterfall_fig, web_interface
 
 # isort: on
 
-from kraken_web_config import write_config_file_dict
-from kraken_web_spectrum import init_spectrum_fig
-from krakenSDR_receiver import ReceiverRTLSDR
-from krakenSDR_signal_processor import SignalProcessor
 from utils import (
     fetch_dsp_data,
     fetch_gps_data,
@@ -32,39 +28,42 @@ from variables import (
     trace_colors,
 )
 
+
 # ============================================
 #          CALLBACK FUNCTIONS
 # ============================================
-# @app.callback(
-#     Output("dummy_output", "children", ""),
-#     Input(component_id="url", component_property="loading_state")
-# )
-# def init_app(event):
-#     print(event, 'init_app')
-#     fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
-#     fetch_gps_data(app, web_interface)
-#     settings_change_watcher(web_interface, settings_file_path)
+@app.callback(
+    Output("dummy_output", "children"),
+    Input(component_id="settings-refresh-timer", component_property="disabled"),
+)
+def init_app(event):
+    print(event, 'init_app')
+    fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
+    fetch_gps_data(app, web_interface)
+    settings_change_watcher(web_interface, settings_file_path)
 
-# @app.callback(
-#     Output("dummy_output", "children", ""),
-#     [
-#         Input(component_id="filename_input", component_property="value"),
-#         Input(component_id="en_data_record", component_property="value"),
-#         Input(component_id="write_interval_input", component_property="value"),
-#     ],
-# )
-# def update_data_recording_params(filename, en_data_record, write_interval):
-#     print(filename, 'update_data_recording_params')
-#     # web_interface.module_signal_processor.data_recording_file_name = filename
-#     web_interface.module_signal_processor.update_recording_filename(filename)
-#     # TODO: Call sig processor file update function here
-#
-#     if en_data_record is not None and len(en_data_record):
-#         web_interface.module_signal_processor.en_data_record = True
-#     else:
-#         web_interface.module_signal_processor.en_data_record = False
-#
-#     web_interface.module_signal_processor.write_interval = float(write_interval)
+
+@app.callback(
+    Output("dummy_output", "children", allow_duplicate=True),
+    [
+        Input(component_id="filename_input", component_property="value"),
+        Input(component_id="en_data_record", component_property="value"),
+        Input(component_id="write_interval_input", component_property="value"),
+    ],
+    prevent_initial_call=True
+)
+def update_data_recording_params(filename, en_data_record, write_interval):
+    print(filename, 'update_data_recording_params')
+    # web_interface.module_signal_processor.data_recording_file_name = filename
+    web_interface.module_signal_processor.update_recording_filename(filename)
+    # TODO: Call sig processor file update function here
+
+    if en_data_record is not None and len(en_data_record):
+        web_interface.module_signal_processor.en_data_record = True
+    else:
+        web_interface.module_signal_processor.en_data_record = False
+
+    web_interface.module_signal_processor.write_interval = float(write_interval)
 
 
 @app.callback(Output("download_recorded_file", "data"), [Input("btn_download_file", "n_clicks")])
@@ -80,42 +79,45 @@ def send_recorded_file(n_clicks):
     )
 
 
-#
-# # Set DOA Output Format
-# @app.callback(Output("dummy_output", "children", ""), [Input(component_id="doa_format_type", component_property="value")])
-# def set_doa_format(doa_format):
-#     print(doa_format, 'set_doa_format')
-#     web_interface.module_signal_processor.DOA_data_format = doa_format
-#
-#
-# # Update Station ID
-# @app.callback(Output("dummy_output", "children", ""), [Input(component_id="station_id_input", component_property="value")])
-# def set_station_id(station_id):
-#     print(station_id, 'set_station_id')
-#     web_interface.module_signal_processor.station_id = station_id
-#
-#
-# @app.callback(Output("dummy_output", "children", ""), [Input(component_id="krakenpro_key", component_property="value")])
-# def set_kraken_pro_key(key):
-#     print(key, 'set_kraken_pro_key')
-#     web_interface.module_signal_processor.krakenpro_key = key
-
-
-# @app.callback(Output("dummy_output", "children", ""), [Input(component_id="rdf_mapper_server_address", component_property="value")])
-# def set_rdf_mapper_server(url):
-#     web_interface.module_signal_processor.RDF_mapper_server = url
-#
-
-
-# Enable GPS Relevant fields
+# Set DOA Output Format
 @app.callback(
-    [Output("fixed_heading_div", "style"), Output("gps_status_info", "style")], [Input("loc_src_dropdown", "value")]
+    Output("dummy_output", "children", allow_duplicate=True),
+    [Input(component_id="doa_format_type", component_property="value")],
+    prevent_initial_call=True
 )
-def toggle_gps_fields(toggle_value):
-    if toggle_value == "gpsd":
-        return [{"display": "block"}, {"display": "block"}]
-    else:
-        return [{"display": "none"}, {"display": "none"}]
+def set_doa_format(doa_format):
+    print(doa_format, 'set_doa_format')
+    web_interface.module_signal_processor.DOA_data_format = doa_format
+
+
+# Update Station ID
+@app.callback(
+    Output("dummy_output", "children", allow_duplicate=True),
+    [Input(component_id="station_id_input", component_property="value")],
+    prevent_initial_call=True
+)
+def set_station_id(station_id):
+    print(station_id, 'set_station_id')
+    web_interface.module_signal_processor.station_id = station_id
+
+
+@app.callback(
+    Output("dummy_output", "children", allow_duplicate=True),
+    [Input(component_id="krakenpro_key", component_property="value")],
+    prevent_initial_call=True
+)
+def set_kraken_pro_key(key):
+    print(key, 'set_kraken_pro_key')
+    web_interface.module_signal_processor.krakenpro_key = key
+
+
+@app.callback(
+    Output("dummy_output", "children", allow_duplicate=True),
+    [Input(component_id="rdf_mapper_server_address", component_property="value")],
+    prevent_initial_call=True
+)
+def set_rdf_mapper_server(url):
+    web_interface.module_signal_processor.RDF_mapper_server = url
 
 
 # Enable of Disable Kraken Pro Key Box
@@ -132,118 +134,7 @@ def toggle_kraken_pro_key(doa_format_type):
     )
     return kraken_pro_field_style, rdf_mapper_server_address_field_style
 
-
-# Enable or Disable Heading Input Fields
-@app.callback(
-    Output("heading_field", "style"),
-    [
-        Input("loc_src_dropdown", "value"),
-        Input(component_id="fixed_heading_check", component_property="value"),
-    ],
-    [State("heading_input", component_property="value")],
-)
-def toggle_heading_info(static_loc, fixed_heading, heading):
-    if static_loc == "Static":
-        web_interface.module_signal_processor.fixed_heading = True
-        web_interface.module_signal_processor.heading = heading
-        return {"display": "block"}
-    elif static_loc == "gpsd" and fixed_heading:
-        web_interface.module_signal_processor.heading = heading
-        return {"display": "block"}
-    elif static_loc == "gpsd" and not fixed_heading:
-        web_interface.module_signal_processor.fixed_heading = False
-        return {"display": "none"}
-    elif static_loc == "None":
-        web_interface.module_signal_processor.fixed_heading = False
-        return {"display": "none"}
-    else:
-        return {"display": "none"}
-
-
-# Enable or Disable Location Input Fields
-@app.callback(Output("location_fields", "style"), [Input("loc_src_dropdown", "value")])
-def toggle_location_info(toggle_value):
-    web_interface.location_source = toggle_value
-    if toggle_value == "Static":
-        return {"display": "block"}
-    else:
-        return {"display": "none"}
-
-
-# Enable or Disable Location Input Fields
-@app.callback(
-    Output("min_speed_heading_fields", "style"),
-    [Input("loc_src_dropdown", "value"), Input("fixed_heading_check", "value")],
-)
-def toggle_min_speed_heading_filter(toggle_value, fixed_heading):
-    web_interface.location_source = toggle_value
-    if toggle_value == "gpsd" and not fixed_heading:
-        return {"display": "block"}
-    else:
-        return {"display": "none"}
-
-
-# # Set location data
-# @app.callback_shared(
-#     None,
-#     [
-#         Input(component_id="latitude_input", component_property="value"),
-#         Input(component_id="longitude_input", component_property="value"),
-#         Input("loc_src_dropdown", "value"),
-#     ],
-# )
-# def set_static_location(lat, lon, toggle_value):
-#     if toggle_value == "Static":
-#         web_interface.module_signal_processor.latitude = lat
-#         web_interface.module_signal_processor.longitude = lon
-#
-#
-# # Enable Fixed Heading
-# @app.callback(None, [Input(component_id="fixed_heading_check", component_property="value")])
-# def set_fixed_heading(fixed):
-#     if fixed:
-#         web_interface.module_signal_processor.fixed_heading = True
-#     else:
-#         web_interface.module_signal_processor.fixed_heading = False
-#
-#
-# # Set heading data
-# @app.callback_shared(None, [Input(component_id="heading_input", component_property="value")])
-# def set_static_heading(heading):
-#     web_interface.module_signal_processor.heading = heading
-#
-#
-# # Set minimum speed for trustworthy GPS heading
-# @app.callback_shared(None, [Input(component_id="min_speed_input", component_property="value")])
-# def set_min_speed_for_valid_gps_heading(min_speed):
-#     web_interface.module_signal_processor.gps_min_speed_for_valid_heading = min_speed
-#
-#
-# # Set minimum speed duration for trustworthy GPS heading
-# @app.callback_shared(None, [Input(component_id="min_speed_duration_input", component_property="value")])
-# def set_min_speed_duration_for_valid_gps_heading(min_speed_duration):
-#     web_interface.module_signal_processor.gps_min_duration_for_valid_heading = min_speed_duration
-#
-#
-# Enable GPS (note that we need this to fire on load, so we cannot use callback_shared!)
-@app.callback(
-    [Output("gps_status", "children"), Output("gps_status", "style")],
-    [Input("loc_src_dropdown", "value")],
-)
-def enable_gps(toggle_value):
-    if toggle_value == "gpsd":
-        status = web_interface.module_signal_processor.enable_gps()
-        if status:
-            web_interface.module_signal_processor.usegps = True
-            return ["Connected", {"color": "#7ccc63"}]
-        else:
-            return ["Error", {"color": "#e74c3c"}]
-    else:
-        web_interface.module_signal_processor.usegps = False
-        return ["-", {"color": "white"}]
-
-
-# @app.callback_shared(None, web_interface.vfo_cfg_inputs)
+# @app.callback_shared(Output("dummy_output", "children", allow_duplicate=True), web_interface.vfo_cfg_inputs)
 # def update_vfo_params(*args):
 #     # Get dict of input variables
 #     input_names = [item.component_id for item in web_interface.vfo_cfg_inputs]
@@ -298,7 +189,7 @@ def enable_gps(toggle_value):
 #
 #
 # @app.callback_shared(
-#     None,
+#     Output("dummy_output", "children", allow_duplicate=True),
 #     [Input(component_id="btn-start_proc", component_property="n_clicks")],
 # )
 # def start_proc_btn(input_value):
@@ -307,7 +198,7 @@ def enable_gps(toggle_value):
 #
 #
 # @app.callback_shared(
-#     None,
+#     Output("dummy_output", "children", allow_duplicate=True),
 #     [Input(component_id="btn-stop_proc", component_property="n_clicks")],
 # )
 # def stop_proc_btn(input_value):
@@ -316,7 +207,7 @@ def enable_gps(toggle_value):
 #
 #
 # @app.callback_shared(
-#     None,
+#     Output("dummy_output", "children", allow_duplicate=True),
 #     [Input(component_id="btn-save_cfg", component_property="n_clicks")],
 # )
 # def save_config_btn(input_value):
@@ -325,7 +216,7 @@ def enable_gps(toggle_value):
 #
 #
 # @app.callback_shared(
-#     None,
+#     Output("dummy_output", "children", allow_duplicate=True),
 #     [Input(component_id="btn-restart_sw", component_property="n_clicks")],
 # )
 # def restart_sw_btn(input_value):
@@ -336,7 +227,7 @@ def enable_gps(toggle_value):
 #
 #
 # @app.callback_shared(
-#     None,
+#     Output("dummy_output", "children", allow_duplicate=True),
 #     [Input(component_id="btn-restart_system", component_property="n_clicks")],
 # )
 # def restart_system_btn(input_value):
@@ -345,7 +236,7 @@ def enable_gps(toggle_value):
 #
 #
 # @app.callback_shared(
-#     None,
+#     Output("dummy_output", "children", allow_duplicate=True),
 #     [Input(component_id="btn-shtudown_system", component_property="n_clicks")],
 # )
 # def shutdown_system_btn(input_value):
@@ -354,7 +245,7 @@ def enable_gps(toggle_value):
 #
 #
 # @app.callback_shared(
-#     None,
+#     Output("dummy_output", "children", allow_duplicate=True),
 #     [Input(component_id="btn-clear_cache", component_property="n_clicks")],
 # )
 # def clear_cache_btn(input_value):
@@ -364,12 +255,12 @@ def enable_gps(toggle_value):
 #     subprocess.Popen(["bash", "kraken_doa_start.sh", "-c"])  # ,
 #
 #
-# @app.callback_shared(None, [Input("spectrum-graph", "clickData")])
+# @app.callback_shared(Output("dummy_output", "children", allow_duplicate=True), [Input("spectrum-graph", "clickData")])
 # def click_to_set_freq_spectrum(clickData):
 #     set_clicked(web_interface, clickData)
 #
 #
-# @app.callback_shared(None, [Input("waterfall-graph", "clickData")])
+# @app.callback_shared(Output("dummy_output", "children", allow_duplicate=True), [Input("waterfall-graph", "clickData")])
 # def click_to_set_waterfall_spectrum(clickData):
 #     set_clicked(web_interface, clickData)
 #
@@ -559,157 +450,3 @@ def enable_gps(toggle_value):
 #             return ["upd"]
 #
 #     return Output("dummy_output", "children", "")
-
-
-# @app.callback(
-#     Output("dummy_output", "children", ""),
-#     [Input(component_id="btn_reconfig_daq_chain", component_property="n_clicks")],
-#     [
-#         State(component_id="daq_center_freq", component_property="value"),
-#         State(component_id="daq_rx_gain", component_property="value"),
-#     ],
-# )
-# def reconfig_daq_chain(input_value, freq, gain):
-#     if input_value is None:
-#         # [no_update, no_update, no_update, no_update]
-#         return Output("dummy_output", "children", "")
-#
-#     # TODO: Check data interface mode here !
-#     #    Update DAQ Subsystem config file
-#     config_res, config_err = write_config_file_dict(web_interface, web_interface.daq_ini_cfg_dict, dsp_settings)
-#     if config_res:
-#         web_interface.daq_cfg_ini_error = config_err[0]
-#         return Output("placeholder_recofnig_daq", "children", "-1")
-#     else:
-#         web_interface.logger.info("DAQ Subsystem configuration file edited")
-#
-#     web_interface.daq_restart = 1
-#     #    Restart DAQ Subsystem
-#
-#     # Stop signal processing
-#     web_interface.stop_processing()
-#     web_interface.logger.debug("Signal processing stopped")
-#
-#     # time.sleep(2)
-#
-#     # Close control and IQ data interfaces
-#     web_interface.close_data_interfaces()
-#     web_interface.logger.debug("Data interfaces are closed")
-#
-#     os.chdir(daq_subsystem_path)
-#     # Kill DAQ subsystem
-#     # , stdout=subprocess.DEVNULL)
-#     daq_stop_script = subprocess.Popen(["bash", daq_stop_filename])
-#     daq_stop_script.wait()
-#     web_interface.logger.debug("DAQ Subsystem halted")
-#
-#     # Start DAQ subsystem
-#     # , stdout=subprocess.DEVNULL)
-#     daq_start_script = subprocess.Popen(["bash", daq_start_filename])
-#     daq_start_script.wait()
-#     web_interface.logger.debug("DAQ Subsystem restarted")
-#
-#     # time.sleep(3)
-#
-#     os.chdir(root_path)
-#
-#     # TODO: Try this reinit method again, if it works it would save us needing
-#     # to restore variable states
-#
-#     # Reinitialize receiver data interface
-#     # if web_interface.module_receiver.init_data_iface() == -1:
-#     #    web_interface.logger.critical("Failed to restart the DAQ data interface")
-#     #    web_interface.daq_cfg_ini_error = "Failed to restart the DAQ data interface"
-#     # return Output('dummy_output', 'children', '') #[no_update, no_update,
-#     # no_update, no_update]
-#
-#     # return [-1]
-#
-#     # Reset channel number count
-#     # web_interface.module_receiver.M = web_interface.daq_ini_cfg_params[1]
-#
-#     # web_interface.module_receiver.M = 0
-#     # web_interface.module_signal_processor.first_frame = 1
-#
-#     # web_interface.module_receiver.eth_connect()
-#     # time.sleep(2)
-#     # web_interface.config_daq_rf(web_interface.daq_center_freq, web_interface.module_receiver.daq_rx_gain)
-#
-#     # Recreate and reinit the receiver and signal processor modules from
-#     # scratch, keeping current setting values
-#     daq_center_freq = web_interface.module_receiver.daq_center_freq
-#     daq_rx_gain = web_interface.module_receiver.daq_rx_gain
-#     rec_ip_addr = web_interface.module_receiver.rec_ip_addr
-#
-#     DOA_ant_alignment = web_interface.module_signal_processor.DOA_ant_alignment
-#     DOA_inter_elem_space = web_interface.module_signal_processor.DOA_inter_elem_space
-#     en_DOA_estimation = web_interface.module_signal_processor.en_DOA_estimation
-#     doa_decorrelation_method = web_interface.module_signal_processor.DOA_decorrelation_method
-#     ula_direction = web_interface.module_signal_processor.ula_direction
-#
-#     doa_format = web_interface.module_signal_processor.DOA_data_format
-#     doa_station_id = web_interface.module_signal_processor.station_id
-#     doa_lat = web_interface.module_signal_processor.latitude
-#     doa_lon = web_interface.module_signal_processor.longitude
-#     doa_fixed_heading = web_interface.module_signal_processor.fixed_heading
-#     doa_heading = web_interface.module_signal_processor.heading
-#     # alt
-#     # speed
-#     doa_hasgps = web_interface.module_signal_processor.hasgps
-#     doa_usegps = web_interface.module_signal_processor.usegps
-#     doa_gps_connected = web_interface.module_signal_processor.gps_connected
-#     logging_level = web_interface.logging_level
-#     data_interface = web_interface.data_interface
-#
-#     web_interface.module_receiver = ReceiverRTLSDR(
-#         data_que=web_interface.rx_data_que, data_interface=data_interface, logging_level=logging_level
-#     )
-#     web_interface.module_receiver.daq_center_freq = daq_center_freq
-#     # settings.uniform_gain #daq_rx_gain
-#     web_interface.module_receiver.daq_rx_gain = daq_rx_gain
-#     web_interface.module_receiver.rec_ip_addr = rec_ip_addr
-#
-#     web_interface.module_signal_processor = SignalProcessor(
-#         data_que=web_interface.sp_data_que,
-#         module_receiver=web_interface.module_receiver,
-#         logging_level=logging_level,
-#     )
-#     web_interface.module_signal_processor.DOA_ant_alignment = DOA_ant_alignment
-#     web_interface.module_signal_processor.DOA_inter_elem_space = DOA_inter_elem_space
-#     web_interface.module_signal_processor.en_DOA_estimation = en_DOA_estimation
-#     web_interface.module_signal_processor.DOA_decorrelation_method = doa_decorrelation_method
-#     web_interface.module_signal_processor.ula_direction = ula_direction
-#
-#     web_interface.module_signal_processor.DOA_data_format = doa_format
-#     web_interface.module_signal_processor.station_id = doa_station_id
-#     web_interface.module_signal_processor.latitude = doa_lat
-#     web_interface.module_signal_processor.longitude = doa_lon
-#     web_interface.module_signal_processor.fixed_heading = doa_fixed_heading
-#     web_interface.module_signal_processor.heading = doa_heading
-#     web_interface.module_signal_processor.hasgps = doa_hasgps
-#     web_interface.module_signal_processor.usegps = doa_usegps
-#     web_interface.module_signal_processor.gps_connected = doa_gps_connected
-#
-#     # This must be here, otherwise the gains dont reinit properly?
-#     web_interface.module_receiver.M = web_interface.daq_ini_cfg_dict["num_ch"]
-#     print("M: " + str(web_interface.module_receiver.M))
-#
-#     web_interface.module_signal_processor.start()
-#
-#     # Reinit the spectrum fig, because number of traces may have changed if
-#     # tuner count is different
-#     global spectrum_fig
-#     spectrum_fig = init_spectrum_fig(web_interface, fig_layout, trace_colors)
-#
-#     # Restart signal processing
-#     web_interface.start_processing()
-#     web_interface.logger.debug("Signal processing started")
-#     web_interface.daq_restart = 0
-#
-#     web_interface.daq_cfg_ini_error = ""
-#     # web_interface.tmp_daq_ini_cfg
-#     web_interface.active_daq_ini_cfg = web_interface.daq_ini_cfg_dict["config_name"]
-#
-#     return Output("daq_cfg_files", "value", daq_config_filename), Output(
-#         "active_daq_ini_cfg", "children", "Active Configuration: " + web_interface.active_daq_ini_cfg
-#     )

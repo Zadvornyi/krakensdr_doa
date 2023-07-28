@@ -4,12 +4,13 @@ from maindash import app, web_interface
 
 
 @app.callback(
-    Output("dummy_output", "children", ""),
+    Output("dummy_output", "children", allow_duplicate=True),
     [Input(component_id="btn-update_rx_param", component_property="n_clicks")],
     [
         State(component_id="daq_center_freq", component_property="value"),
         State(component_id="daq_rx_gain", component_property="value"),
     ],
+    prevent_initial_call=True
 )
 def update_daq_params(event, f0, gain):
     if event and web_interface.module_signal_processor.run_processing:

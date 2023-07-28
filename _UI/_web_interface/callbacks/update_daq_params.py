@@ -12,8 +12,9 @@ from maindash import app, web_interface
     ],
     prevent_initial_call=True
 )
-def update_daq_params(event, f0, gain):
-    if event and web_interface.module_signal_processor.run_processing:
+def update_daq_params(n_clicks, f0, gain):
+    if n_clicks and web_interface.module_signal_processor.run_processing:
+        print(web_interface.module_signal_processor.run_processing, 'update_daq_params')
         web_interface.daq_center_freq = f0
         web_interface.config_daq_rf(f0, gain)
 

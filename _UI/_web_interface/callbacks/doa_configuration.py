@@ -205,7 +205,7 @@ def update_dsp_params(
     web_interface.module_signal_processor.compass_offset = compass_offset
     web_interface.module_signal_processor.ula_direction = ula_direction
     web_interface.module_signal_processor.array_offset = array_offset
-
+    print(web_interface._doa_fig_type, doa_fig_type, 'test')
     if en_peak_hold is not None and len(en_peak_hold):
         web_interface.module_signal_processor.en_peak_hold = True
     else:

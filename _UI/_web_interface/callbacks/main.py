@@ -139,6 +139,10 @@ def stop_proc_btn(n_clicks):
         web_interface.logger.info("Stop pocessing btn pushed")
         web_interface.stop_processing()
 
+        web_interface.dsp_timer.cancel()
+        web_interface.gps_timer.cancel()
+        web_interface.settings_change_timer.cancel()
+
 
 @app.callback(
     Output("dummy_output", "children", allow_duplicate=True),
@@ -146,9 +150,11 @@ def stop_proc_btn(n_clicks):
     prevent_initial_call=True,
 )
 def save_config_btn(n_clicks):
+    resp_text = 'Saving DAQ and DSP Configuration'
     if n_clicks:
-        web_interface.logger.info("Saving DAQ and DSP Configuration")
+        web_interface.logger.info(resp_text)
         web_interface.save_configuration()
+        return resp_text
 
 
 @app.callback(
@@ -203,8 +209,8 @@ def toggle_beta_features(toggle_value):
 # )
 # def settings_change_refresh(toggle_value, pathname):
 #     print(toggle_value, web_interface.needs_refresh, pathname, 'settings_change_refresh')
-#     # if web_interface.needs_refresh:
-#     #     if pathname == "/" or pathname == "/init" or pathname == "/config":
-#     #         return "upd"
-#     #
-#     # return 'settings_change_refresh'
+#     if web_interface.needs_refresh:
+#         if pathname == "/" or pathname == "/init" or pathname == "/config":
+#             return "upd"
+#
+#     return 'settings_change_refresh'

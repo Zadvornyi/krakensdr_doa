@@ -84,7 +84,6 @@ def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
     #############################################
     #      Fetch new data from back-end ques    #
     #############################################
-    print('first fetch_dsp_data')
     try:
         # Fetch new data from the receiver module
         que_data_packet = web_interface.rx_data_que.get(False)
@@ -197,7 +196,7 @@ def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
     else:
         pass
         # Handle task here and call q.task_done()
-    print('second fetch_dsp_data')
+
     if (
         web_interface.pathname == "/config" or web_interface.pathname == "/" or web_interface.pathname == "/init"
     ) and daq_status_update_flag:
@@ -208,7 +207,7 @@ def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
     # web_interface.reset_doa_graph_flag):
     elif web_interface.pathname == "/doa" and doa_update_flag:
         plot_doa(app, web_interface, doa_fig)
-
+    print('fetch_dsp_data')
     web_interface.dsp_timer = Timer(0.01, fetch_dsp_data, args=(app, web_interface, spectrum_fig, waterfall_fig))
     web_interface.dsp_timer.start()
 

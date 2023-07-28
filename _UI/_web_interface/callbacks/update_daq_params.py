@@ -1,18 +1,18 @@
 import numpy as np
-from dash_devices.dependencies import Input, State
+from dash import Input, Output, State
 from maindash import app, web_interface
 
 
-@app.callback_shared(
-    None,
+@app.callback(
+    Output("dummy_output", "children", ""),
     [Input(component_id="btn-update_rx_param", component_property="n_clicks")],
     [
         State(component_id="daq_center_freq", component_property="value"),
         State(component_id="daq_rx_gain", component_property="value"),
     ],
 )
-def update_daq_params(input_value, f0, gain):
-    if web_interface.module_signal_processor.run_processing:
+def update_daq_params(event, f0, gain):
+    if event and web_interface.module_signal_processor.run_processing:
         web_interface.daq_center_freq = f0
         web_interface.config_daq_rf(f0, gain)
 

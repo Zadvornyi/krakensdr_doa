@@ -31,6 +31,7 @@ app.layout = main.layout
 from callbacks import (  # noqa: F401
     display_page,
     doa_configuration,
+    daq_reconfiguration,
     main,
     update_daq_params,
 )

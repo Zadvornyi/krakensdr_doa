@@ -10,11 +10,11 @@ from maindash import app, web_interface
         State(component_id="daq_center_freq", component_property="value"),
         State(component_id="daq_rx_gain", component_property="value"),
     ],
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 def update_daq_params(n_clicks, f0, gain):
     if n_clicks and web_interface.module_signal_processor.run_processing:
-        print(web_interface.module_signal_processor.run_processing, 'update_daq_params')
+        print(web_interface.module_signal_processor.run_processing, "update_daq_params")
         web_interface.daq_center_freq = f0
         web_interface.config_daq_rf(f0, gain)
 
@@ -24,7 +24,7 @@ def update_daq_params(n_clicks, f0, gain):
             max_freq = web_interface.daq_center_freq + web_interface.daq_fs / 2 - half_band_width
             if not (min_freq < (web_interface.module_signal_processor.vfo_freq[i] / 10**6) < max_freq):
                 web_interface.module_signal_processor.vfo_freq[i] = f0
-                app.push_mods({f"vfo_{i}_freq": {"value": f0}})
+                # app.push_mods({f"vfo_{i}_freq": {"value": f0}})
 
         wavelength = 300 / web_interface.daq_center_freq
         # web_interface.module_signal_processor.DOA_inter_elem_space = web_interface.ant_spacing_meters / wavelength
@@ -41,8 +41,8 @@ def update_daq_params(n_clicks, f0, gain):
             web_interface.module_signal_processor.DOA_inter_elem_space = web_interface.ant_spacing_meters / wavelength
 
         ant_spacing_wavelength = round(web_interface.module_signal_processor.DOA_inter_elem_space, 3)
-        app.push_mods(
-            {
-                "body_ant_spacing_wavelength": {"children": str(ant_spacing_wavelength)},
-            }
-        )
+        # app.push_mods(
+        #     {
+        #         "body_ant_spacing_wavelength": {"children": str(ant_spacing_wavelength)},
+        #     }
+        # )

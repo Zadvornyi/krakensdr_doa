@@ -19,7 +19,7 @@ layout = html.Div(
             ],
             className="header",
         ),
-        dcc.Interval(id="settings-refresh-timer", interval=60*1000, n_intervals=3),
+        dcc.Interval(id="settings-refresh-timer", interval=3000, n_intervals=0),
         html.Div(id="placeholder_start", style={"display": "none"}),
         html.Div(id="placeholder_stop", style={"display": "none"}),
         html.Div(id="placeholder_save", style={"display": "none"}),

@@ -3,9 +3,7 @@ from maindash import app, web_interface
 
 
 @app.callback(
-    Output("dummy_output", "children", allow_duplicate=True),
-    web_interface.vfo_cfg_inputs,
-    prevent_initial_call=True
+    Output("dummy_output", "children", allow_duplicate=True), web_interface.vfo_cfg_inputs, prevent_initial_call=True
 )
 def update_vfo_params(*args):
     print("update_data_recording_params")
@@ -23,7 +21,7 @@ def update_vfo_params(*args):
     # If VFO mode is in the VFO-0 Auto Max mode, we active VFOs to 1 only
     if kwargs_dict["vfo_mode"] == "Auto":
         active_vfos = 1
-        app.push_mods({"active_vfos": {"value": 1}})
+        # app.push_mods({"active_vfos": {"value": 1}})
 
     web_interface.module_signal_processor.dsp_decimation = max(int(kwargs_dict["dsp_decimation"]), 1)
     web_interface.module_signal_processor.active_vfos = active_vfos
@@ -35,11 +33,11 @@ def update_vfo_params(*args):
     else:
         web_interface.module_signal_processor.optimize_short_bursts = False
 
-    for i in range(web_interface.module_signal_processor.max_vfos):
-        if i < kwargs_dict["active_vfos"]:
-            app.push_mods({"vfo" + str(i): {"style": {"display": "block"}}})
-        else:
-            app.push_mods({"vfo" + str(i): {"style": {"display": "none"}}})
+    # for i in range(web_interface.module_signal_processor.max_vfos):
+    #     if i < kwargs_dict["active_vfos"]:
+    #         # app.push_mods({"vfo" + str(i): {"style": {"display": "block"}}})
+    #     else:
+    #         # app.push_mods({"vfo" + str(i): {"style": {"display": "none"}}})
 
     if web_interface.daq_fs > 0:
         bw = web_interface.daq_fs / web_interface.module_signal_processor.dsp_decimation
@@ -48,13 +46,13 @@ def update_vfo_params(*args):
 
         for i in range(web_interface.module_signal_processor.max_vfos):
             web_interface.module_signal_processor.vfo_bw[i] = int(
-                min(kwargs_dict["vfo_" + str(i) + "_bw"], bw * 10 ** 6)
+                min(kwargs_dict["vfo_" + str(i) + "_bw"], bw * 10**6)
             )
             web_interface.module_signal_processor.vfo_fir_order_factor[i] = int(
                 kwargs_dict["vfo_" + str(i) + "_fir_order_factor"]
             )
             web_interface.module_signal_processor.vfo_freq[i] = int(
-                max(min(kwargs_dict["vfo_" + str(i) + "_freq"], vfo_max), vfo_min) * 10 ** 6
+                max(min(kwargs_dict["vfo_" + str(i) + "_freq"], vfo_max), vfo_min) * 10**6
             )
             web_interface.module_signal_processor.vfo_squelch[i] = int(kwargs_dict["vfo_" + str(i) + "_squelch"])
             web_interface.module_signal_processor.vfo_demod[i] = kwargs_dict[f"vfo_{i}_demod"]

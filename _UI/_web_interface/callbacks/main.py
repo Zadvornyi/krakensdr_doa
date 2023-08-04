@@ -9,20 +9,19 @@ from maindash import app, spectrum_fig, waterfall_fig, web_interface
 
 from utils import fetch_dsp_data, fetch_gps_data, set_clicked, settings_change_watcher
 from variables import daq_config_filename, settings_file_path
-
+from views import daq_status_card
 
 # ============================================
 #          CALLBACK FUNCTIONS
 # ============================================
-@app.callback(
-    Output("dummy_output", "children"),
-    Input(component_id="settings-refresh-timer", component_property="disabled"),
-)
-def init_app(event):
-    print(event, "init_app")
-    fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
-    fetch_gps_data(app, web_interface)
-    settings_change_watcher(web_interface, settings_file_path)
+# @app.callback(
+#     Output("dummy_output", "children"),
+#     Input(component_id="settings-refresh-timer", component_property="disabled"),
+# )
+# def init_app(event):
+#     # fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
+#     # fetch_gps_data(app, web_interface)
+#     # settings_change_watcher(web_interface, settings_file_path)
 
 
 # TODO: it was  callback_shared
@@ -150,7 +149,7 @@ def stop_proc_btn(n_clicks):
     prevent_initial_call=True,
 )
 def save_config_btn(n_clicks):
-    resp_text = 'Saving DAQ and DSP Configuration'
+    resp_text = "Saving DAQ and DSP Configuration"
     if n_clicks:
         web_interface.logger.info(resp_text)
         web_interface.save_configuration()
@@ -202,13 +201,23 @@ def toggle_beta_features(toggle_value):
 
     return toggle_output
 
+
+@app.callback(Output("daq_status_card", "children"), Input("settings-refresh-timer", "n_intervals"))
+def update_daq_status_card(intervals):
+    print(intervals, "intervals")
+    fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
+    return daq_status_card.daq_status_content()
+
+
 # @app.callback(
 #     Output("placeholder_update_rx", "children"),
 #     Input("settings-refresh-timer", "n_intervals"),
 #     [State("url", "pathname")],
 # )
-# def settings_change_refresh(toggle_value, pathname):
-#     print(toggle_value, web_interface.needs_refresh, pathname, 'settings_change_refresh')
+# def settings_change_refresh(intervals, pathname):
+#     print(intervals, web_interface.needs_refresh, pathname, 'settings_change_refresh')
+#     fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
+#     print(web_interface.daq_power_level, 'daq_power_level')
 #     if web_interface.needs_refresh:
 #         if pathname == "/" or pathname == "/init" or pathname == "/config":
 #             return "upd"

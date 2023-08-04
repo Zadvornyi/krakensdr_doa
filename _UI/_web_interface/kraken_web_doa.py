@@ -104,9 +104,9 @@ def plot_doa(app, web_interface, doa_fig):
                 doa_max_str = (360 - web_interface.doas[0] + web_interface.compass_offset) % 360
                 update_data = dict(theta=[(360 - thetas + web_interface.compass_offset) % 360], r=[result])
 
-            app.push_mods(
-                {
-                    "doa-graph": {"extendData": [update_data, [0], len(thetas)]},
-                    "body_doa_max": {"children": doa_max_str},
-                }
-            )
+            # app.push_mods(
+            #     {
+            #         "doa-graph": {"extendData": [update_data, [0], len(thetas)]},
+            #         "body_doa_max": {"children": doa_max_str},
+            #     }
+            # )

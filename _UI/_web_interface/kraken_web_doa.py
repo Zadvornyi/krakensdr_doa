@@ -103,7 +103,7 @@ def plot_doa(app, web_interface, doa_fig):
                 result = np.append(web_interface.doa_results[0], web_interface.doa_results[0][0])
                 doa_max_str = (360 - web_interface.doas[0] + web_interface.compass_offset) % 360
                 update_data = dict(theta=[(360 - thetas + web_interface.compass_offset) % 360], r=[result])
-
+            # TODO: delete all push_mods
             # app.push_mods(
             #     {
             #         "doa-graph": {"extendData": [update_data, [0], len(thetas)]},

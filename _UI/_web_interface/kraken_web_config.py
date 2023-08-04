@@ -72,13 +72,13 @@ def generate_config_page_layout(web_interface):
     config_page_component_list = [
         start_stop_card.layout,
         daq_status_card.daq_status_card_layout(),
-        # get_daq_config_card_layout(),
-        # get_vfo_config_card_layout(),
-        # get_dsp_config_card_layout(),
-        # get_display_options_card_layout(),
+        get_daq_config_card_layout(),
+        get_vfo_config_card_layout(),
+        get_dsp_config_card_layout(),
+        get_display_options_card_layout(),
         get_station_config_card_layout(),
         get_recording_config_card_layout(),
-        # system_control_card.layout,
+        system_control_card.layout,
     ]
 
     # for i in range(web_interface.module_signal_processor.max_vfos):

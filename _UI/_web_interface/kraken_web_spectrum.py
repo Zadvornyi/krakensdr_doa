@@ -145,12 +145,12 @@ def plot_spectrum(app, web_interface, spectrum_fig, waterfall_fig):
         waterfall_fig.update_xaxes(tickfont_size=1, range=[np.min(x), np.max(x)], showgrid=False)
 
         web_interface.reset_spectrum_graph_flag = False
-        app.push_mods(
-            {
-                "spectrum-graph": {"figure": spectrum_fig},
-                "waterfall-graph": {"figure": waterfall_fig},
-            }
-        )
+        # app.push_mods(
+        #     {
+        #         "spectrum-graph": {"figure": spectrum_fig},
+        #         "waterfall-graph": {"figure": waterfall_fig},
+        #     }
+        # )
 
     else:
         # Update entire graph to update VFO-0 text. There is no way to just update annotations in Dash, but updating the entire spectrum is fast
@@ -193,10 +193,11 @@ def plot_spectrum(app, web_interface, spectrum_fig, waterfall_fig):
             spectrum_fig.data[m - 1]["y"] = web_interface.spectrum[m, :]
 
         z = web_interface.spectrum[1, :]
-        app.push_mods(
-            {
-                "spectrum-graph": {"figure": spectrum_fig},
-                # Add up spectrum for waterfall
-                "waterfall-graph": {"extendData": [dict(z=[[z]]), [0], 50]},
-            }
-        )
+
+        # app.push_mods(
+        #     {
+        #         "spectrum-graph": {"figure": spectrum_fig},
+        #         # Add up spectrum for waterfall
+        #         "waterfall-graph": {"extendData": [dict(z=[[z]]), [0], 50]},
+        #     }
+        # )

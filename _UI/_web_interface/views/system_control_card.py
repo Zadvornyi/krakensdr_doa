@@ -62,7 +62,7 @@ layout = html.Div(
                     ],
                     className="field",
                 ),
-                html.Div("Version 1.6.1"),
+                html.Div("Version 2.0.0"),
             ],
             id="system_control_container",
         ),

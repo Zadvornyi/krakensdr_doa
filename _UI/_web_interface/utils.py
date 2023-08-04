@@ -220,8 +220,7 @@ def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
     # web_interface.reset_doa_graph_flag):
     elif web_interface.pathname == "/doa" and web_interface.doa_update_flag:
         plot_doa(app, web_interface, doa_fig)
-    # web_interface.dsp_timer = Timer(1.01, fetch_dsp_data, args=(app, web_interface, spectrum_fig, waterfall_fig))
-    # web_interface.dsp_timer.start()
+
 
 
 def settings_change_watcher(web_interface, settings_file_path):

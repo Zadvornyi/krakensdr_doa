@@ -316,14 +316,14 @@ def update_daq_ini_params(
             while cfg_decimation_ratio * cfg_cpi_size < cfg_daq_buffer_size:
                 cfg_daq_buffer_size = (int)(cfg_daq_buffer_size / 2)
 
-            app.push_mods(
-                {
-                    "cfg_cpi_size": {"value": cfg_cpi_size},
-                    "cfg_cal_frame_interval": {"value": cfg_cal_frame_interval},
-                    "cfg_fir_tap_size": {"value": cfg_fir_tap_size},
-                    "cfg_daq_buffer_size": {"value": cfg_daq_buffer_size},
-                }
-            )
+            # app.push_mods(
+            #     {
+            #         "cfg_cpi_size": {"value": cfg_cpi_size},
+            #         "cfg_cal_frame_interval": {"value": cfg_cal_frame_interval},
+            #         "cfg_fir_tap_size": {"value": cfg_fir_tap_size},
+            #         "cfg_daq_buffer_size": {"value": cfg_daq_buffer_size},
+            #     }
+            # )
 
         # If we updated advanced daq, update basic DAQ params
         elif (
@@ -341,12 +341,12 @@ def update_daq_ini_params(
             cfg_data_block_len = cfg_cpi_size / (decimated_bw)
             cfg_recal_interval = (cfg_cal_frame_interval * (cfg_data_block_len / 10 ** 3)) / 60
 
-            app.push_mods(
-                {
-                    "cfg_data_block_len": {"value": cfg_data_block_len},
-                    "cfg_recal_interval": {"value": cfg_recal_interval},
-                }
-            )
+            # app.push_mods(
+            #     {
+            #         "cfg_data_block_len": {"value": cfg_data_block_len},
+            #         "cfg_recal_interval": {"value": cfg_recal_interval},
+            #     }
+            # )
 
     # Write calculated daq params to the ini param_dict
     param_dict = web_interface.daq_ini_cfg_dict

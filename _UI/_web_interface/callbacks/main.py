@@ -11,9 +11,11 @@ from utils import fetch_dsp_data, fetch_gps_data, set_clicked, settings_change_w
 from variables import daq_config_filename, settings_file_path
 from views import daq_status_card
 
+
 # ============================================
 #          CALLBACK FUNCTIONS
 # ============================================
+# TODO: resolve init_app function
 # @app.callback(
 #     Output("dummy_output", "children"),
 #     Input(component_id="settings-refresh-timer", component_property="disabled"),

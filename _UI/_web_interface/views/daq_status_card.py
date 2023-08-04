@@ -17,7 +17,6 @@ def get_daq_update_rate():
 
 
 def get_daq_conn_status_str():
-    daq_conn_status_str = "Disconnected"
     if web_interface.daq_conn_status == 1:
         if not web_interface.daq_cfg_iface_status:
             daq_conn_status_str = "Connected"
@@ -33,7 +32,6 @@ def get_daq_conn_status_str():
 
 
 def get_daq_conn_status_style():
-    conn_status_style = {"color": "#e74c3c"}
     if web_interface.daq_conn_status == 1:
         if not web_interface.daq_cfg_iface_status:
             conn_status_style = {"color": "#7ccc63"}
@@ -114,10 +112,8 @@ def get_daq_delay_sync_style():
 def get_daq_iq_sync_str():
     if web_interface.daq_iq_sync:
         daq_iq_sync_str = "Ok"
-        iq_sync_style = {"color": "#7ccc63"}
     else:
         daq_iq_sync_str = "LOSS"
-        iq_sync_style = {"color": "#e74c3c"}
     return daq_iq_sync_str
 
 
@@ -145,6 +141,40 @@ def get_daq_noise_source_style():
         noise_source_style = {"color": "#7ccc63"}
 
     return noise_source_style
+
+
+def get_dsp_decimated_bw_str():
+    bw = web_interface.daq_fs / web_interface.module_signal_processor.dsp_decimation
+    dsp_decimated_bw_str = "{0:.3f}".format(bw)
+
+    return dsp_decimated_bw_str
+
+
+def get_vfo_range_str():
+    bw = web_interface.daq_fs / web_interface.module_signal_processor.dsp_decimation
+    vfo_range_str = (
+            "{0:.3f}".format(web_interface.daq_center_freq - bw / 2)
+            + " - "
+            + "{0:.3f}".format(web_interface.daq_center_freq + bw / 2)
+    )
+    return vfo_range_str
+
+
+def get_gps_en_str():
+    if web_interface.module_signal_processor.gps_status == "Connected":
+        gps_en_str = "Connected"
+    else:
+        gps_en_str = web_interface.module_signal_processor.gps_status
+    return gps_en_str
+
+
+def get_gps_en_style():
+    if web_interface.module_signal_processor.gps_status == "Connected":
+        gps_en_str_style = {"color": "#7ccc63"}
+    else:
+        gps_en_str_style = {"color": "#e74c3c"}
+
+    return gps_en_str_style
 
 
 def daq_status_content():
@@ -254,55 +284,69 @@ def daq_status_content():
             ],
             className="field",
         ),
-        # html.Div(
-        #     [
-        #         html.Div("Center Frequecy [MHz]:", id="label_daq_rf_center_freq", className="field-label"),
-        #         html.Div("- MHz", id="body_daq_rf_center_freq", className="field-body"),
-        #     ],
-        #     className="field",
-        # ),
-        # html.Div(
-        #     [
-        #         html.Div("Sampling Frequency [MHz]:", id="label_daq_sampling_freq", className="field-label"),
-        #         html.Div("- MHz", id="body_daq_sampling_freq", className="field-body"),
-        #     ],
-        #     className="field",
-        # ),
-        # html.Div(
-        #     [
-        #         html.Div("DSP Decimated BW [MHz]:", id="label_dsp_decimated_bw", className="field-label"),
-        #         html.Div("- MHz", id="body_dsp_decimated_bw", className="field-body"),
-        #     ],
-        #     className="field",
-        # ),
-        # html.Div(
-        #     [
-        #         html.Div("VFO Range [MHz]:", id="label_vfo_range", className="field-label"),
-        #         html.Div("- MHz", id="body_vfo_range", className="field-body"),
-        #     ],
-        #     className="field",
-        # ),
-        # html.Div(
-        #     [
-        #         html.Div("Data Block Length [ms]:", id="label_daq_cpi", className="field-label"),
-        #         html.Div("- ms", id="body_daq_cpi", className="field-body"),
-        #     ],
-        #     className="field",
-        # ),
-        # html.Div(
-        #     [
-        #         html.Div("RF Gains [dB]:", id="label_daq_if_gain", className="field-label"),
-        #         html.Div("[,] dB", id="body_daq_if_gain", className="field-body"),
-        #     ],
-        #     className="field",
-        # ),
-        # html.Div(
-        #     [
-        #         html.Div("VFO-0 Power [dB]:", id="label_max_amp", className="field-label"),
-        #         html.Div("-", id="body_max_amp", className="field-body"),
-        #     ],
-        #     className="field",
-        # ),
+        html.Div(
+            [
+                html.Div("Center Frequecy [MHz]:", id="label_daq_rf_center_freq", className="field-label"),
+                html.Div(str(web_interface.daq_center_freq), id="body_daq_rf_center_freq", className="field-body"),
+            ],
+            className="field",
+        ),
+        html.Div(
+            [
+                html.Div("Sampling Frequency [MHz]:", id="label_daq_sampling_freq", className="field-label"),
+                html.Div(str(web_interface.daq_fs), id="body_daq_sampling_freq", className="field-body"),
+            ],
+            className="field",
+        ),
+        html.Div(
+            [
+                html.Div("DSP Decimated BW [MHz]:", id="label_dsp_decimated_bw", className="field-label"),
+                html.Div(get_dsp_decimated_bw_str(), id="body_dsp_decimated_bw", className="field-body"),
+            ],
+            className="field",
+        ),
+        html.Div(
+            [
+                html.Div("VFO Range [MHz]:", id="label_vfo_range", className="field-label"),
+                html.Div(get_vfo_range_str(), id="body_vfo_range", className="field-body"),
+            ],
+            className="field",
+        ),
+        html.Div(
+            [
+                html.Div("Data Block Length [ms]:", id="label_daq_cpi", className="field-label"),
+                html.Div(str(web_interface.daq_cpi), id="body_daq_cpi", className="field-body"),
+            ],
+            className="field",
+        ),
+        html.Div(
+            [
+                html.Div("RF Gains [dB]:", id="label_daq_if_gain", className="field-label"),
+                html.Div(web_interface.daq_if_gains, id="body_daq_if_gain", className="field-body"),
+            ],
+            className="field",
+        ),
+        html.Div(
+            [
+                html.Div("VFO-0 Power [dB]:", id="label_max_amp", className="field-label"),
+                html.Div("{:.1f}".format(web_interface.max_amplitude), id="body_max_amp", className="field-body"),
+            ],
+            className="field",
+        ),
+        html.Div(
+            [
+                html.Div("Average Power:", id="label_daq_avg_powers", className="field-label"),
+                html.Div(web_interface.avg_powers, id="body_daq_avg_powers", className="field-body"),
+            ],
+            className="field",
+        ),
+        html.Div(
+            [
+                html.Div("GPS status:", id="label_gps_en", className="field-label"),
+                html.Div(get_gps_en_str(), id="body_gps_en", className="field-body", style=get_gps_en_style()),
+            ],
+            className="field",
+        ),
     ]
 
     return content

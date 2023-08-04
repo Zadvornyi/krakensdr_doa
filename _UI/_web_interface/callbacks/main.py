@@ -7,7 +7,7 @@ from maindash import app, spectrum_fig, waterfall_fig, web_interface
 
 # isort: on
 
-from utils import fetch_dsp_data, fetch_gps_data, set_clicked, settings_change_watcher
+from utils import fetch_dsp_data, set_clicked, settings_change_watcher
 from variables import daq_config_filename, settings_file_path
 from views import daq_status_card
 
@@ -22,7 +22,7 @@ from views import daq_status_card
 # )
 # def init_app(event):
 #     # fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
-#     # fetch_gps_data(app, web_interface)
+
 #     # settings_change_watcher(web_interface, settings_file_path)
 
 
@@ -206,10 +206,11 @@ def toggle_beta_features(toggle_value):
 
 @app.callback(Output("daq_status_card", "children"), Input("settings-refresh-timer", "n_intervals"))
 def update_daq_status_card(intervals):
-    print(intervals, "intervals")
     fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
-    return daq_status_card.daq_status_content()
 
+    settings_change_watcher(web_interface, settings_file_path)
+
+    return daq_status_card.daq_status_content()
 
 # @app.callback(
 #     Output("placeholder_update_rx", "children"),

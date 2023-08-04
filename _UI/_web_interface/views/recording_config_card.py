@@ -65,7 +65,7 @@ def get_recording_config_card_layout():
             html.Div(
                 [
                     html.Div("File Size (MB):", id="label_file_size", className="field-label"),
-                    html.Div("- MB", id="body_file_size", className="field-body"),
+                    html.Div(web_interface.module_signal_processor.get_recording_filesize(), id="body_file_size", className="field-body"),
                 ],
                 className="field",
             ),

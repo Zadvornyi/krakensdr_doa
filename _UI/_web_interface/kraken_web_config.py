@@ -76,8 +76,8 @@ def generate_config_page_layout(web_interface):
         # get_vfo_config_card_layout(),
         # get_dsp_config_card_layout(),
         # get_display_options_card_layout(),
-        # get_station_config_card_layout(),
-        # get_recording_config_card_layout(),
+        get_station_config_card_layout(),
+        get_recording_config_card_layout(),
         # system_control_card.layout,
     ]
 

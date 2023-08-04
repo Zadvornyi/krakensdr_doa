@@ -174,21 +174,21 @@ def get_station_config_card_layout():
                     html.Div(
                         [
                             html.Div("Latitude:", id="label_gps_latitude", className="field-label"),
-                            html.Div("-", id="body_gps_latitude", className="field-body"),
+                            html.Div(web_interface.module_signal_processor.latitude, id="body_gps_latitude", className="field-body"),
                         ],
                         className="field",
                     ),
                     html.Div(
                         [
                             html.Div("Longitude:", id="label_gps_longitude", className="field-label"),
-                            html.Div("-", id="body_gps_longitude", className="field-body"),
+                            html.Div(web_interface.module_signal_processor.longitude, id="body_gps_longitude", className="field-body"),
                         ],
                         className="field",
                     ),
                     html.Div(
                         [
                             html.Div("Heading:", id="label_gps_heading", className="field-label"),
-                            html.Div("-", id="body_gps_heading", className="field-body"),
+                            html.Div(web_interface.module_signal_processor.heading, id="body_gps_heading", className="field-body"),
                         ],
                         className="field",
                     ),

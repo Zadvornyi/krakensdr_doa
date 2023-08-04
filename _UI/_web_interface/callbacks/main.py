@@ -7,9 +7,11 @@ from maindash import app, spectrum_fig, waterfall_fig, web_interface
 
 # isort: on
 
+from kraken_web_spectrum import plot_spectrum
 from utils import fetch_dsp_data, set_clicked, settings_change_watcher
 from variables import daq_config_filename, settings_file_path
 from views import daq_status_card
+
 
 # ============================================
 #          CALLBACK FUNCTIONS
@@ -201,6 +203,14 @@ def update_daq_status_card(intervals):
 
     return daq_status_card.daq_status_content()
 
+
+@app.callback(
+    Output("spectrum-graph", "figure"),
+    Input("settings-refresh-timer", "n_intervals")
+)
+def update_spectrum(intervals):
+    if web_interface.pathname == "/spectrum" and web_interface.spectrum_update_flag:
+        return plot_spectrum(web_interface, spectrum_fig, waterfall_fig)
 
 # @app.callback(
 #     Output("placeholder_update_rx", "children"),

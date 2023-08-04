@@ -80,7 +80,6 @@ def fetch_signal_processing_data(web_interface):
         # Fetch new data from the signal processing module
         que_data_packet = web_interface.sp_data_que.get(False)
         for data_entry in que_data_packet:
-            print(data_entry[0], "fetch_signal_processing_data")
             if data_entry[0] == "iq_header":
                 web_interface.logger.debug("Iq header data fetched from signal processing que")
                 iq_header = data_entry[1]
@@ -210,15 +209,8 @@ def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
     fetch_receiver_data(web_interface)
     fetch_signal_processing_data(web_interface)
 
-    if (
-        web_interface.pathname == "/config" or web_interface.pathname == "/" or web_interface.pathname == "/init"
-    ) and web_interface.daq_status_update_flag:
-        web_interface.logger.debug("show config page")
-    elif web_interface.pathname == "/spectrum" and web_interface.spectrum_update_flag:
-        plot_spectrum(app, web_interface, spectrum_fig, waterfall_fig)
-    # or (web_interface.pathname == "/doa" and
-    # web_interface.reset_doa_graph_flag):
-    elif web_interface.pathname == "/doa" and web_interface.doa_update_flag:
+
+    if web_interface.pathname == "/doa" and web_interface.doa_update_flag:
         plot_doa(app, web_interface, doa_fig)
 
 

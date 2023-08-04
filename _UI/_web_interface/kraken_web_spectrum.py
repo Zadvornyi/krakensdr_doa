@@ -96,7 +96,7 @@ def init_spectrum_fig(web_interface, fig_layout, trace_colors):
     return spectrum_fig
 
 
-def plot_spectrum(app, web_interface, spectrum_fig, waterfall_fig):
+def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
     # if spectrum_fig == None:
     if web_interface.reset_spectrum_graph_flag:
         # Reset the peak hold each time the spectrum page is loaded
@@ -145,13 +145,14 @@ def plot_spectrum(app, web_interface, spectrum_fig, waterfall_fig):
         waterfall_fig.update_xaxes(tickfont_size=1, range=[np.min(x), np.max(x)], showgrid=False)
 
         web_interface.reset_spectrum_graph_flag = False
+
         # app.push_mods(
         #     {
         #         "spectrum-graph": {"figure": spectrum_fig},
         #         "waterfall-graph": {"figure": waterfall_fig},
         #     }
         # )
-
+        return spectrum_fig
     else:
         # Update entire graph to update VFO-0 text. There is no way to just update annotations in Dash, but updating the entire spectrum is fast
         # enough to do on click
@@ -201,3 +202,4 @@ def plot_spectrum(app, web_interface, spectrum_fig, waterfall_fig):
         #         "waterfall-graph": {"extendData": [dict(z=[[z]]), [0], 50]},
         #     }
         # )
+    return spectrum_fig

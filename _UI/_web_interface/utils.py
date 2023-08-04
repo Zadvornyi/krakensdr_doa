@@ -2,7 +2,6 @@ import json
 import os
 import queue
 from configparser import ConfigParser
-from threading import Timer
 
 import numpy as np
 from kraken_web_doa import plot_doa
@@ -108,10 +107,10 @@ def fetch_signal_processing_data(web_interface):
                 # if web_interface.daq_center_freq != iq_header.rf_center_freq/10**6:
                 #    freq_update = 1
 
-                web_interface.daq_center_freq = iq_header.rf_center_freq / 10 ** 6
-                web_interface.daq_adc_fs = iq_header.adc_sampling_freq / 10 ** 6
-                web_interface.daq_fs = iq_header.sampling_freq / 10 ** 6
-                web_interface.daq_cpi = int(iq_header.cpi_length * 10 ** 3 / iq_header.sampling_freq)
+                web_interface.daq_center_freq = iq_header.rf_center_freq / 10**6
+                web_interface.daq_adc_fs = iq_header.adc_sampling_freq / 10**6
+                web_interface.daq_fs = iq_header.sampling_freq / 10**6
+                web_interface.daq_cpi = int(iq_header.cpi_length * 10**3 / iq_header.sampling_freq)
                 gain_list_str = ""
 
                 for m in range(iq_header.active_ant_chs):
@@ -212,7 +211,7 @@ def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
     fetch_signal_processing_data(web_interface)
 
     if (
-            web_interface.pathname == "/config" or web_interface.pathname == "/" or web_interface.pathname == "/init"
+        web_interface.pathname == "/config" or web_interface.pathname == "/" or web_interface.pathname == "/init"
     ) and web_interface.daq_status_update_flag:
         web_interface.logger.debug("show config page")
     elif web_interface.pathname == "/spectrum" and web_interface.spectrum_update_flag:
@@ -256,10 +255,10 @@ def settings_change_watcher(web_interface, settings_file_path):
             dsp_settings.get("custom_array_y_meters", "0.1,0.2,0.3,0.4,0.5").split(",")
         )
         web_interface.module_signal_processor.custom_array_x = web_interface.custom_array_x_meters / (
-                300 / web_interface.module_receiver.daq_center_freq
+            300 / web_interface.module_receiver.daq_center_freq
         )
         web_interface.module_signal_processor.custom_array_y = web_interface.custom_array_y_meters / (
-                300 / web_interface.module_receiver.daq_center_freq
+            300 / web_interface.module_receiver.daq_center_freq
         )
 
         # Station Information
@@ -317,7 +316,3 @@ def settings_change_watcher(web_interface, settings_file_path):
         web_interface.needs_refresh = True
 
     web_interface.last_changed_time_previous = last_changed_time
-
-    web_interface.settings_change_timer = Timer(0.1, settings_change_watcher, args=(web_interface, settings_file_path))
-    web_interface.settings_change_timer.start()
-

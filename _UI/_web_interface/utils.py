@@ -201,18 +201,13 @@ def fetch_receiver_data(web_interface):
         web_interface.daq_status_update_flag = 1
 
 
-def fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig):
+def fetch_dsp_data(web_interface):
     web_interface.daq_status_update_flag = 0
     web_interface.spectrum_update_flag = 0
     web_interface.doa_update_flag = 0
 
     fetch_receiver_data(web_interface)
     fetch_signal_processing_data(web_interface)
-
-
-    if web_interface.pathname == "/doa" and web_interface.doa_update_flag:
-        plot_doa(app, web_interface, doa_fig)
-
 
 
 def settings_change_watcher(web_interface, settings_file_path):

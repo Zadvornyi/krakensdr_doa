@@ -205,8 +205,6 @@ class WebInterface:
         self.squelch_update = []
         self.logger.info("Web interface object initialized")
 
-        self.dsp_timer = None
-        self.settings_change_timer = None
         self.update_time = 9999
 
         self.pathname = ""

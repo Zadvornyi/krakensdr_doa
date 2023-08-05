@@ -116,7 +116,6 @@ def set_min_speed_duration_for_valid_gps_heading(min_speed_duration):
     web_interface.module_signal_processor.gps_min_duration_for_valid_heading = min_speed_duration
 
 
-# Enable GPS (note that we need this to fire on load, so we cannot use callback_shared!)
 @app.callback(
     [Output("gps_status", "children"), Output("gps_status", "style")],
     [Input("loc_src_dropdown", "value")],

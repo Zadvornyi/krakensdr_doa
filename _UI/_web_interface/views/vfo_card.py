@@ -113,7 +113,7 @@ def get_vfo_card_layout():
                             className="field",
                         ),
                     ],
-                    id="beta_features_container " + str(i),
+                    id=f"beta_features_container-{str(i)}",
                     style={"display": "none"},
                 ),
             ],

@@ -6,19 +6,21 @@ from dash import Input, Output, State, dcc
 from maindash import app, spectrum_fig, waterfall_fig, web_interface
 
 # isort: on
-
+from kraken_web_doa import plot_doa
 from kraken_web_spectrum import plot_spectrum
 from utils import fetch_dsp_data, set_clicked, settings_change_watcher
 from variables import daq_config_filename, settings_file_path
 from views import daq_status_card
+
+from variables import (
+    doa_fig,
+)
 
 
 # ============================================
 #          CALLBACK FUNCTIONS
 # ============================================
 
-
-# TODO: it was  callback_shared
 @app.callback(
     Output("dummy_output", "children", allow_duplicate=True),
     [
@@ -132,10 +134,6 @@ def stop_proc_btn(n_clicks):
         web_interface.logger.info("Stop pocessing btn pushed")
         web_interface.stop_processing()
 
-        web_interface.dsp_timer.cancel()
-        web_interface.gps_timer.cancel()
-        web_interface.settings_change_timer.cancel()
-
 
 @app.callback(
     Output("dummy_output", "children", allow_duplicate=True),
@@ -170,35 +168,10 @@ def click_to_set_waterfall_spectrum(clickData):
     set_clicked(web_interface, clickData)
 
 
-@app.callback(
-    Output("dummy_output", "children", allow_duplicate=True),
-    [Input("en_beta_features", "value")],
-    prevent_initial_call=True,
-)
-def toggle_beta_features(toggle_value):
-    web_interface.en_beta_features = toggle_value
-
-    toggle_output = []
-
-    # Toggle VFO default configuration settings
-    if toggle_value:
-        toggle_output.append(Output("beta_features_container", "style", {"display": "block"}))
-    else:
-        toggle_output.append(Output("beta_features_container", "style", {"display": "none"}))
-
-    # Toggle individual VFO card settings
-    for i in range(web_interface.module_signal_processor.max_vfos):
-        if toggle_value:
-            toggle_output.append(Output("beta_features_container " + str(i), "style", {"display": "block"}))
-        else:
-            toggle_output.append(Output("beta_features_container " + str(i), "style", {"display": "none"}))
-
-    return toggle_output
-
-
 @app.callback(Output("daq_status_card", "children"), Input("settings-refresh-timer", "n_intervals"))
 def update_daq_status_card(intervals):
-    fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
+    print('update_daq_status_card', web_interface.needs_refresh)
+    fetch_dsp_data(web_interface)
     settings_change_watcher(web_interface, settings_file_path)
 
     return daq_status_card.daq_status_content()
@@ -212,15 +185,24 @@ def update_spectrum(intervals):
     if web_interface.pathname == "/spectrum" and web_interface.spectrum_update_flag:
         return plot_spectrum(web_interface, spectrum_fig, waterfall_fig)
 
+
+@app.callback(
+    Output("doa-graph", "extendData"),
+    Input("settings-refresh-timer", "n_intervals")
+)
+def update_doa_graph(intervals):
+    print(web_interface.pathname, web_interface.doa_update_flag, 'update_doa_graph')
+    if web_interface.pathname == "/doa" and web_interface.doa_update_flag:
+        print('update_doa_graph')
+        fetch_dsp_data(web_interface)
+        return plot_doa(web_interface)
+
 # @app.callback(
 #     Output("placeholder_update_rx", "children"),
 #     Input("settings-refresh-timer", "n_intervals"),
 #     [State("url", "pathname")],
 # )
 # def settings_change_refresh(intervals, pathname):
-#     print(intervals, web_interface.needs_refresh, pathname, 'settings_change_refresh')
-#     fetch_dsp_data(app, web_interface, spectrum_fig, waterfall_fig)
-#     print(web_interface.daq_power_level, 'daq_power_level')
 #     if web_interface.needs_refresh:
 #         if pathname == "/" or pathname == "/init" or pathname == "/config":
 #             return "upd"

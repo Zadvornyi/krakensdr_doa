@@ -1,4 +1,7 @@
 import dash
+
+from kraken_web_doa import init_plot_doa
+from variables import doa_fig
 from kraken_web_interface import WebInterface
 from kraken_web_spectrum import init_spectrum_fig
 from variables import fig_layout, trace_colors
@@ -25,3 +28,4 @@ web_interface = WebInterface()
 #############################################
 spectrum_fig = init_spectrum_fig(web_interface, fig_layout, trace_colors)
 waterfall_fig = init_waterfall(web_interface)
+doa_fig = init_plot_doa(web_interface, doa_fig)

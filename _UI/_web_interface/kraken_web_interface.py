@@ -208,7 +208,6 @@ class WebInterface:
         self.update_time = 9999
 
         self.pathname = ""
-        self.reset_doa_graph_flag = False
         self.reset_spectrum_graph_flag = False
         self.oldMaxIndex = 9999
 

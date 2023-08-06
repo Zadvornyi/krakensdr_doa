@@ -298,7 +298,7 @@ def settings_change_watcher(web_interface, settings_file_path):
         if abs(freq_delta) > 0.001 or abs(gain_delta) > 0.001:
             web_interface.daq_center_freq = center_freq
             web_interface.config_daq_rf(center_freq, gain)
-
+        #TODO: undestange what should i do with needs_refresh
         web_interface.needs_refresh = True
 
     web_interface.last_changed_time_previous = last_changed_time

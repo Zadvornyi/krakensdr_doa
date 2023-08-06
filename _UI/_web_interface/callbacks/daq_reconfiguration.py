@@ -316,6 +316,7 @@ def update_daq_ini_params(
             while cfg_decimation_ratio * cfg_cpi_size < cfg_daq_buffer_size:
                 cfg_daq_buffer_size = (int)(cfg_daq_buffer_size / 2)
 
+            # TODO: delete all push_mods
             # app.push_mods(
             #     {
             #         "cfg_cpi_size": {"value": cfg_cpi_size},

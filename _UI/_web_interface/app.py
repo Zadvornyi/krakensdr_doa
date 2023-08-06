@@ -28,16 +28,15 @@ from views import main
 app.layout = main.layout
 
 # It is workaround for splitting callbacks in separate files (run callbacks after layout)
-from callbacks import (  # noqa: F401
+from callbacks import (  # noqa: F401; daq_reconfiguration,
     display_page,
     doa_configuration,
-    #daq_reconfiguration,
-    main,
-    toggle_beta_features,
     gps_configuration,
+    main,
+    subprocess,
+    toggle_beta_features,
     update_daq_params,
     update_vfo_params,
-    subprocess
 )
 
 if __name__ == "__main__":

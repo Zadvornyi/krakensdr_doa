@@ -1,6 +1,6 @@
 # KrakenSDR Signal Processor
 #
-# Copyright (C) 2018-2021  Carl Laufer, Tamás Pető
+# Copyright (C) 2018-2023  Carl Laufer, Tamás Pető, Andrii Zadvornyi
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ app.layout = main.layout
 from callbacks import (  # noqa: F401
     display_page,
     doa_configuration,
-    daq_reconfiguration,
+    #daq_reconfiguration,
     main,
     gps_configuration,
     update_daq_params,

@@ -16,16 +16,6 @@ from views import daq_status_card
 # ============================================
 #          CALLBACK FUNCTIONS
 # ============================================
-
-@app.callback(Output("daq_status_card", "children"), Input("url", "pathname"))
-def update_daq_status_card(pathname):
-    print('update_daq_status_card')
-    fetch_dsp_data(web_interface)
-    settings_change_watcher(web_interface, settings_file_path)
-
-    # return daq_status_card.daq_status_content()
-
-
 @app.callback(
     Output("dummy_output", "children", allow_duplicate=True),
     [
@@ -153,12 +143,12 @@ def save_config_btn(n_clicks):
         return resp_text
 
 
-# @app.callback(Output("daq_status_card", "children"), Input("settings-refresh-timer", "n_intervals"))
-# def update_daq_status_card_intervarls(intervals):
-#     fetch_dsp_data(web_interface)
-#     settings_change_watcher(web_interface, settings_file_path)
-#
-#     return daq_status_card.daq_status_content()
+@app.callback(Output("daq_status_card", "children"), Input("settings-refresh-timer", "n_intervals"))
+def update_daq_status_card_intervarls(intervals):
+    fetch_dsp_data(web_interface)
+    settings_change_watcher(web_interface, settings_file_path)
+
+    return daq_status_card.daq_status_content()
 
 
 @app.callback([Output("spectrum-graph", "figure"), Output("waterfall-graph", "extendData")],

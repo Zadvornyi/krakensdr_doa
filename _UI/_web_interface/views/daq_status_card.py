@@ -357,6 +357,7 @@ def daq_status_content():
 # -----------------------------
 def daq_status_card_layout():
     layout = html.Div(
+        daq_status_content(),
         id="daq_status_card",
         className="card daq-status-card",
     )

@@ -1,6 +1,6 @@
 import os
 
-from dash import Input, Output, State, dcc
+from dash import clientside_callback, Input, Output, State, dcc
 
 # isort: off
 from maindash import app, spectrum_fig, waterfall_fig, web_interface
@@ -11,6 +11,7 @@ from kraken_web_spectrum import plot_spectrum
 from utils import fetch_dsp_data, settings_change_watcher
 from variables import settings_file_path
 from views import daq_status_card
+
 
 # ============================================
 #          CALLBACK FUNCTIONS
@@ -146,31 +147,23 @@ def save_config_btn(n_clicks):
 
 @app.callback(Output("daq_status_card", "children"), Input("settings-refresh-timer", "n_intervals"))
 def update_daq_status_card(intervals):
-    print("update_daq_status_card", web_interface.needs_refresh)
     fetch_dsp_data(web_interface)
     settings_change_watcher(web_interface, settings_file_path)
 
     return daq_status_card.daq_status_content()
 
 
-@app.callback(Output("waterfall-graph", "extendData"), Input("settings-refresh-timer", "n_intervals"))
+@app.callback([Output("spectrum-graph", "figure"), Output("waterfall-graph", "extendData")],
+              Input("settings-refresh-timer", "n_intervals"))
 def update_spectrum(intervals):
-    if web_interface.pathname == "/spectrum":
-        print("update_spectrum")
-        fetch_dsp_data(web_interface)
-        plot = plot_spectrum(web_interface, spectrum_fig, waterfall_fig)
-        if plot is not None:
-            print(plot, "plot")
-            return plot
+    fetch_dsp_data(web_interface)
+    return plot_spectrum(web_interface, spectrum_fig, waterfall_fig)
 
 
 @app.callback(Output("doa-graph", "extendData"), Input("settings-refresh-timer", "n_intervals"))
 def update_doa_graph(intervals):
-    print(web_interface.pathname, "update_doa_graph")
-    if web_interface.pathname == "/doa":
-        fetch_dsp_data(web_interface)
-        return plot_doa(web_interface)
-
+    fetch_dsp_data(web_interface)
+    return plot_doa(web_interface)
 
 # @app.callback(
 #     Output("placeholder_update_rx", "children"),

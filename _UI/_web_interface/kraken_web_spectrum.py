@@ -113,7 +113,7 @@ def hide_non_active_traces(web_interface, spectrum_fig):
 
 def reset_spectrum_graph(web_interface, spectrum_fig, waterfall_fig):
     # Reset the peak hold each time the spectrum page is loaded
-    if web_interface.reset_spectrum_graph_flag and web_interface.spectrum is not None:
+    if web_interface.spectrum is not None:
         web_interface.module_signal_processor.resetPeakHold()
         x = web_interface.spectrum[0, :] + web_interface.daq_center_freq * 10**6
 
@@ -147,16 +147,19 @@ def reset_spectrum_graph(web_interface, spectrum_fig, waterfall_fig):
         waterfall_fig.update_xaxes(tickfont_size=1, range=[np.min(x), np.max(x)], showgrid=False)
 
 
+
 def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
     # if spectrum_fig == None:
-    if web_interface.reset_spectrum_graph_flag:
+    if web_interface.reset_spectrum_graph_flag and web_interface.spectrum is not None:
         reset_spectrum_graph(web_interface, spectrum_fig, waterfall_fig)
         web_interface.reset_spectrum_graph_flag = False
+
+        z = web_interface.spectrum[1, :]
+        return [spectrum_fig, [dict(z=[[z]]), [0], 50]]
     else:
         # Update entire graph to update VFO-0 text. There is no way to just update annotations in Dash, but updating the entire spectrum is fast
         # enough to do on click
         if web_interface.spectrum is not None:
-            print("ELSE web_interface.spectrum:")
             x = web_interface.spectrum[0, :] + web_interface.daq_center_freq * 10**6
             for i in range(web_interface.module_signal_processor.active_vfos):
                 # Find center of VFO display window
@@ -201,5 +204,4 @@ def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
                 spectrum_fig.data[m - 1]["y"] = web_interface.spectrum[m, :]
 
             z = web_interface.spectrum[1, :]
-            return [dict(z=[[z]]), [0], 50]
-            # return [spectrum_fig, ]
+            return [spectrum_fig, [dict(z=[[z]]), [0], 50]]

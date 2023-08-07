@@ -110,7 +110,6 @@ def fetch_signal_processing_data(web_interface):
                     gain_list_str += ", "
 
                 web_interface.daq_if_gains = gain_list_str[:-2]
-                web_interface.daq_status_update_flag = 1
             elif data_entry[0] == "update_rate":
                 web_interface.daq_update_rate = data_entry[1]
             elif data_entry[0] == "latency":
@@ -126,11 +125,10 @@ def fetch_signal_processing_data(web_interface):
                 web_interface.avg_powers = avg_powers_str[:-2]
             elif data_entry[0] == "spectrum":
                 web_interface.logger.debug("Spectrum data fetched from signal processing que")
-                web_interface.spectrum_update_flag = 1
                 web_interface.spectrum = data_entry[1]
+                print("Spectrum data fetched from signal processing que")
             elif data_entry[0] == "doa_thetas":
                 web_interface.doa_thetas = data_entry[1]
-                web_interface.doa_update_flag = 1
                 web_interface.doa_results = []
                 web_interface.doa_labels = []
                 web_interface.doas = []
@@ -177,13 +175,11 @@ def fetch_receiver_data(web_interface):
             print(data_entry[0], "fetch_receiver_data")
             if data_entry[0] == "conn-ok":
                 web_interface.daq_conn_status = 1
-                web_interface.daq_status_update_flag = 1
+
             elif data_entry[0] == "disconn-ok":
                 web_interface.daq_conn_status = 0
-                web_interface.daq_status_update_flag = 1
             elif data_entry[0] == "config-ok":
                 web_interface.daq_cfg_iface_status = 0
-                web_interface.daq_status_update_flag = 1
     except queue.Empty:
         # Handle empty queue here
         web_interface.logger.debug("Receiver module que is empty")
@@ -191,15 +187,8 @@ def fetch_receiver_data(web_interface):
         pass
         # Handle task here and call q.task_done()
 
-    if web_interface.daq_restart:  # Set by the restarting script
-        web_interface.daq_status_update_flag = 1
-
 
 def fetch_dsp_data(web_interface):
-    web_interface.daq_status_update_flag = 0
-    web_interface.spectrum_update_flag = 0
-    web_interface.doa_update_flag = 0
-
     fetch_receiver_data(web_interface)
     fetch_signal_processing_data(web_interface)
 

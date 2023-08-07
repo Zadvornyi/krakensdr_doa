@@ -8,18 +8,14 @@ from maindash import app, spectrum_fig, waterfall_fig, web_interface
 # isort: on
 from kraken_web_doa import plot_doa
 from kraken_web_spectrum import plot_spectrum
-from utils import fetch_dsp_data, set_clicked, settings_change_watcher
-from variables import daq_config_filename, settings_file_path
+from utils import fetch_dsp_data, settings_change_watcher
+from variables import settings_file_path
 from views import daq_status_card
-
-from variables import (
-    doa_fig,
-)
-
 
 # ============================================
 #          CALLBACK FUNCTIONS
 # ============================================
+
 
 @app.callback(
     Output("dummy_output", "children", allow_duplicate=True),
@@ -148,54 +144,33 @@ def save_config_btn(n_clicks):
         return resp_text
 
 
-@app.callback(
-    Output("dummy_output", "children", allow_duplicate=True),
-    [Input("spectrum-graph", "clickData")],
-    prevent_initial_call=True,
-)
-def click_to_set_freq_spectrum(clickData):
-    print(clickData, "click_to_set_freq_spectrum")
-    set_clicked(web_interface, clickData)
-
-
-@app.callback(
-    Output("dummy_output", "children", allow_duplicate=True),
-    [Input("waterfall-graph", "clickData")],
-    prevent_initial_call=True,
-)
-def click_to_set_waterfall_spectrum(clickData):
-    print(clickData, "click_to_set_waterfall_spectrum")
-    set_clicked(web_interface, clickData)
-
-
 @app.callback(Output("daq_status_card", "children"), Input("settings-refresh-timer", "n_intervals"))
 def update_daq_status_card(intervals):
-    print('update_daq_status_card', web_interface.needs_refresh)
+    print("update_daq_status_card", web_interface.needs_refresh)
     fetch_dsp_data(web_interface)
     settings_change_watcher(web_interface, settings_file_path)
 
     return daq_status_card.daq_status_content()
 
 
-@app.callback(
-    Output("spectrum-graph", "figure"),
-    Input("settings-refresh-timer", "n_intervals")
-)
+@app.callback(Output("waterfall-graph", "extendData"), Input("settings-refresh-timer", "n_intervals"))
 def update_spectrum(intervals):
-    if web_interface.pathname == "/spectrum" and web_interface.spectrum_update_flag:
-        return plot_spectrum(web_interface, spectrum_fig, waterfall_fig)
+    if web_interface.pathname == "/spectrum":
+        print("update_spectrum")
+        fetch_dsp_data(web_interface)
+        plot = plot_spectrum(web_interface, spectrum_fig, waterfall_fig)
+        if plot is not None:
+            print(plot, "plot")
+            return plot
 
 
-@app.callback(
-    Output("doa-graph", "extendData"),
-    Input("settings-refresh-timer", "n_intervals")
-)
+@app.callback(Output("doa-graph", "extendData"), Input("settings-refresh-timer", "n_intervals"))
 def update_doa_graph(intervals):
-    print(web_interface.pathname, web_interface.doa_update_flag, 'update_doa_graph')
-    if web_interface.pathname == "/doa" and web_interface.doa_update_flag:
-        print('update_doa_graph')
+    print(web_interface.pathname, "update_doa_graph")
+    if web_interface.pathname == "/doa":
         fetch_dsp_data(web_interface)
         return plot_doa(web_interface)
+
 
 # @app.callback(
 #     Output("placeholder_update_rx", "children"),

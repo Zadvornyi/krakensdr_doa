@@ -2,7 +2,6 @@
 from maindash import app, web_interface
 
 # isort: on
-
 from dash import Input, Output
 from kraken_web_config import generate_config_page_layout
 from views import generate_doa_page, spectrum_page

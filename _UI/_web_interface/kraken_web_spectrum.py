@@ -96,13 +96,25 @@ def init_spectrum_fig(web_interface, fig_layout, trace_colors):
     return spectrum_fig
 
 
-def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
-    # if spectrum_fig == None:
-    if web_interface.reset_spectrum_graph_flag:
-        print("TRUE plot_spectrum")
-        # Reset the peak hold each time the spectrum page is loaded
+def hide_non_active_traces(web_interface, spectrum_fig):
+    # Hide non active traces
+    for i in range(web_interface.module_signal_processor.max_vfos):
+        if i < web_interface.module_signal_processor.active_vfos:
+            spectrum_fig.data[web_interface.module_receiver.M + (i * 2)]["visible"] = True
+            spectrum_fig.data[web_interface.module_receiver.M + (i * 2 + 1)]["visible"] = True
+            spectrum_fig.layout.annotations[i]["visible"] = True
+            spectrum_fig.layout.annotations[web_interface.module_signal_processor.max_vfos + i]["visible"] = True
+        else:
+            spectrum_fig.data[web_interface.module_receiver.M + (i * 2)]["visible"] = False
+            spectrum_fig.data[web_interface.module_receiver.M + (i * 2 + 1)]["visible"] = False
+            spectrum_fig.layout.annotations[i]["visible"] = False
+            spectrum_fig.layout.annotations[web_interface.module_signal_processor.max_vfos + i]["visible"] = False
+
+
+def reset_spectrum_graph(web_interface, spectrum_fig, waterfall_fig):
+    # Reset the peak hold each time the spectrum page is loaded
+    if web_interface.reset_spectrum_graph_flag and web_interface.spectrum is not None:
         web_interface.module_signal_processor.resetPeakHold()
-        print(web_interface.spectrum, "plot_spectrum")
         x = web_interface.spectrum[0, :] + web_interface.daq_center_freq * 10**6
 
         # Plot traces
@@ -129,73 +141,65 @@ def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
                 spectrum_fig.data[m]["visible"] = True
                 spectrum_fig.data[m]["line"]["color"] = trace_colors[m]
 
-        # Hide non active traces
-        for i in range(web_interface.module_signal_processor.max_vfos):
-            if i < web_interface.module_signal_processor.active_vfos:
-                spectrum_fig.data[web_interface.module_receiver.M + (i * 2)]["visible"] = True
-                spectrum_fig.data[web_interface.module_receiver.M + (i * 2 + 1)]["visible"] = True
-                spectrum_fig.layout.annotations[i]["visible"] = True
-                spectrum_fig.layout.annotations[web_interface.module_signal_processor.max_vfos + i]["visible"] = True
-            else:
-                spectrum_fig.data[web_interface.module_receiver.M + (i * 2)]["visible"] = False
-                spectrum_fig.data[web_interface.module_receiver.M + (i * 2 + 1)]["visible"] = False
-                spectrum_fig.layout.annotations[i]["visible"] = False
-                spectrum_fig.layout.annotations[web_interface.module_signal_processor.max_vfos + i]["visible"] = False
+        hide_non_active_traces(web_interface, spectrum_fig)
 
         waterfall_fig.data[0]["x"] = x
         waterfall_fig.update_xaxes(tickfont_size=1, range=[np.min(x), np.max(x)], showgrid=False)
 
+
+def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
+    # if spectrum_fig == None:
+    if web_interface.reset_spectrum_graph_flag:
+        reset_spectrum_graph(web_interface, spectrum_fig, waterfall_fig)
         web_interface.reset_spectrum_graph_flag = False
-
-        return {
-            "spectrum_graph": spectrum_fig,
-            "waterfall_graph": waterfall_fig,
-        }
-
     else:
-        print("FALSE plot_spectrum")
         # Update entire graph to update VFO-0 text. There is no way to just update annotations in Dash, but updating the entire spectrum is fast
         # enough to do on click
-        x = web_interface.spectrum[0, :] + web_interface.daq_center_freq * 10**6
-        for i in range(web_interface.module_signal_processor.active_vfos):
-            # Find center of VFO display window
-            maxIndex = web_interface.spectrum[web_interface.module_receiver.M + (i * 2 + 1), :].argmax()
+        if web_interface.spectrum is not None:
+            print("ELSE web_interface.spectrum:")
+            x = web_interface.spectrum[0, :] + web_interface.daq_center_freq * 10**6
+            for i in range(web_interface.module_signal_processor.active_vfos):
+                # Find center of VFO display window
+                maxIndex = web_interface.spectrum[web_interface.module_receiver.M + (i * 2 + 1), :].argmax()
 
-            reverseSpectrum = web_interface.spectrum[web_interface.module_receiver.M + (i * 2 + 1), ::-1]
-            maxIndexReverse = reverseSpectrum.argmax()
-            maxIndexReverse = len(reverseSpectrum) - maxIndexReverse - 1
-            maxIndexCenter = (maxIndex + maxIndexReverse) // 2
+                reverseSpectrum = web_interface.spectrum[web_interface.module_receiver.M + (i * 2 + 1), ::-1]
+                maxIndexReverse = reverseSpectrum.argmax()
+                maxIndexReverse = len(reverseSpectrum) - maxIndexReverse - 1
+                maxIndexCenter = (maxIndex + maxIndexReverse) // 2
 
-            # Update VFO Text Bearing
-            doa = web_interface.max_doas_list[i]
-            if web_interface._doa_fig_type == "Compass":
-                doa = (360 - doa + web_interface.compass_offset) % 360
-            spectrum_fig.layout.annotations[web_interface.module_signal_processor.max_vfos + i]["text"] = str(doa) + "°"
+                # Update VFO Text Bearing
+                doa = web_interface.max_doas_list[i]
+                if web_interface._doa_fig_type == "Compass":
+                    doa = (360 - doa + web_interface.compass_offset) % 360
+                spectrum_fig.layout.annotations[web_interface.module_signal_processor.max_vfos + i]["text"] = (
+                    str(doa) + "°"
+                )
 
-            maxX = x[maxIndexCenter]
-            spectrum_fig.layout.annotations[i]["x"] = maxX
-            spectrum_fig.layout.annotations[web_interface.module_signal_processor.max_vfos + i]["x"] = maxX
+                maxX = x[maxIndexCenter]
+                spectrum_fig.layout.annotations[i]["x"] = maxX
+                spectrum_fig.layout.annotations[web_interface.module_signal_processor.max_vfos + i]["x"] = maxX
 
-            # Update selected VFO border
-            width = 0
-            if web_interface.selected_vfo == i:
-                width = 3
+                # Update selected VFO border
+                width = 0
+                if web_interface.selected_vfo == i:
+                    width = 3
 
-            # Update squelch/active colors
-            if web_interface.squelch_update[i]:
-                spectrum_fig.data[web_interface.module_receiver.M + (i * 2)]["line"] = dict(color="green", width=width)
-            else:
-                spectrum_fig.data[web_interface.module_receiver.M + (i * 2)]["line"] = dict(color="red", width=width)
+                # Update squelch/active colors
+                if web_interface.squelch_update[i]:
+                    spectrum_fig.data[web_interface.module_receiver.M + (i * 2)]["line"] = dict(
+                        color="green", width=width
+                    )
+                else:
+                    spectrum_fig.data[web_interface.module_receiver.M + (i * 2)]["line"] = dict(
+                        color="red", width=width
+                    )
 
-        # Make y values too so that the graph does not rapidly flash with
-        # random data on every click
-        for m in range(1, np.size(web_interface.spectrum, 0)):
-            spectrum_fig.data[m - 1]["x"] = x
-            spectrum_fig.data[m - 1]["y"] = web_interface.spectrum[m, :]
+            # Make y values too so that the graph does not rapidly flash with
+            # random data on every click
+            for m in range(1, np.size(web_interface.spectrum, 0)):
+                spectrum_fig.data[m - 1]["x"] = x
+                spectrum_fig.data[m - 1]["y"] = web_interface.spectrum[m, :]
 
-        z = web_interface.spectrum[1, :]
-
-        return {
-            "spectrum_graph": spectrum_fig,
-            "waterfall_extend_data": [dict(z=[[z]]), [0], 50],
-        }
+            z = web_interface.spectrum[1, :]
+            return [dict(z=[[z]]), [0], 50]
+            # return [spectrum_fig, ]

@@ -99,9 +99,10 @@ def init_spectrum_fig(web_interface, fig_layout, trace_colors):
 def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
     # if spectrum_fig == None:
     if web_interface.reset_spectrum_graph_flag:
+        print("TRUE plot_spectrum")
         # Reset the peak hold each time the spectrum page is loaded
         web_interface.module_signal_processor.resetPeakHold()
-
+        print(web_interface.spectrum, "plot_spectrum")
         x = web_interface.spectrum[0, :] + web_interface.daq_center_freq * 10**6
 
         # Plot traces
@@ -146,14 +147,13 @@ def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
 
         web_interface.reset_spectrum_graph_flag = False
 
-        # app.push_mods(
-        #     {
-        #         "spectrum-graph": {"figure": spectrum_fig},
-        #         "waterfall-graph": {"figure": waterfall_fig},
-        #     }
-        # )
-        return spectrum_fig
+        return {
+            "spectrum_graph": spectrum_fig,
+            "waterfall_graph": waterfall_fig,
+        }
+
     else:
+        print("FALSE plot_spectrum")
         # Update entire graph to update VFO-0 text. There is no way to just update annotations in Dash, but updating the entire spectrum is fast
         # enough to do on click
         x = web_interface.spectrum[0, :] + web_interface.daq_center_freq * 10**6
@@ -195,11 +195,7 @@ def plot_spectrum(web_interface, spectrum_fig, waterfall_fig):
 
         z = web_interface.spectrum[1, :]
 
-        # app.push_mods(
-        #     {
-        #         "spectrum-graph": {"figure": spectrum_fig},
-        #         # Add up spectrum for waterfall
-        #         "waterfall-graph": {"extendData": [dict(z=[[z]]), [0], 50]},
-        #     }
-        # )
-    return spectrum_fig
+        return {
+            "spectrum_graph": spectrum_fig,
+            "waterfall_extend_data": [dict(z=[[z]]), [0], 50],
+        }

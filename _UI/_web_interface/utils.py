@@ -4,15 +4,8 @@ import queue
 from configparser import ConfigParser
 
 import numpy as np
-from kraken_web_doa import plot_doa
-from kraken_web_spectrum import plot_spectrum
 from krakenSDR_signal_processor import DEFAULT_VFO_FIR_ORDER_FACTOR
-from variables import (
-    DEFAULT_MAPPING_SERVER_ENDPOINT,
-    HZ_TO_MHZ,
-    daq_config_filename,
-    doa_fig,
-)
+from variables import DEFAULT_MAPPING_SERVER_ENDPOINT, HZ_TO_MHZ, daq_config_filename
 
 
 def read_config_file_dict(config_fname=daq_config_filename):
@@ -57,7 +50,7 @@ def read_config_file_dict(config_fname=daq_config_filename):
     return ini_data
 
 
-def set_clicked(web_interface, clickData):
+def set_click_freq_spectrum(web_interface, clickData):
     M = web_interface.module_receiver.M
     curveNumber = clickData["points"][0]["curveNumber"]
 
@@ -129,10 +122,11 @@ def fetch_signal_processing_data(web_interface):
                 for avg_power in data_entry[1]:
                     avg_powers_str += "{:.1f}".format(avg_power)
                     avg_powers_str += ", "
+                print(avg_powers_str, "avg_powers")
                 web_interface.avg_powers = avg_powers_str[:-2]
             elif data_entry[0] == "spectrum":
                 web_interface.logger.debug("Spectrum data fetched from signal processing que")
-                web_interface.web_interface.spectrum_update_flag = 1
+                web_interface.spectrum_update_flag = 1
                 web_interface.spectrum = data_entry[1]
             elif data_entry[0] == "doa_thetas":
                 web_interface.doa_thetas = data_entry[1]
@@ -298,7 +292,7 @@ def settings_change_watcher(web_interface, settings_file_path):
         if abs(freq_delta) > 0.001 or abs(gain_delta) > 0.001:
             web_interface.daq_center_freq = center_freq
             web_interface.config_daq_rf(center_freq, gain)
-        #TODO: undestange what should i do with needs_refresh
+        # TODO: undestange what should i do with needs_refresh
         web_interface.needs_refresh = True
 
     web_interface.last_changed_time_previous = last_changed_time

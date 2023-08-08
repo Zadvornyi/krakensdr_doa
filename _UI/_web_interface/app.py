@@ -24,7 +24,6 @@ from maindash import app
 # isort: on
 
 from views import main
-from threading import Timer
 app.layout = main.layout
 
 # It is workaround for splitting callbacks in separate files (run callbacks after layout)
@@ -40,13 +39,7 @@ from callbacks import (  # noqa: F401; daq_reconfiguration,
     update_vfo_params,
 )
 
-def test_print():
-    print('TEST PRINT')
-
 if __name__ == "__main__":
-    t = Timer(0.2, test_print)
-    t.start()
-    from threading import Timer
     # Debug mode does not work when the data interface is set to shared-memory
     # "shmem"!
     app.run_server(debug=False, host="0.0.0.0", port=8080)

@@ -20,9 +20,6 @@
 
 import asyncio
 import json
-import os
-import random
-import sys
 
 from kraken_web_doa import init_plot_doa
 from kraken_web_interface import WebInterface
@@ -52,7 +49,7 @@ async def krakenrf_data():
     while True:
         fetch_dsp_data(web_interface)
         print(web_interface.module_signal_processor.latitude, "websocket")
-        output = json.dumps([random.random() for _ in range(10)])
+        output = json.dumps(web_interface.module_signal_processor.latitude)
         await websocket.send(output)
         await asyncio.sleep(1)
 if __name__ == "__main__":

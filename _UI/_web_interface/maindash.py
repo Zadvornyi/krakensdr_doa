@@ -1,16 +1,14 @@
-import dash
-
+from dash_extensions.enrich import DashProxy
 from kraken_web_doa import init_plot_doa
-from variables import doa_fig
 from kraken_web_interface import WebInterface
 from kraken_web_spectrum import init_spectrum_fig
-from variables import fig_layout, trace_colors
+from variables import doa_fig, fig_layout, trace_colors
 from waterfall import init_waterfall
 
 # app = dash.Dash(__name__, suppress_callback_exceptions=True,
 # compress=True, update_title="") # cannot use update_title with
 # dash_devices
-app = dash.Dash(__name__, suppress_callback_exceptions=True)
+app = DashProxy(__name__, prevent_initial_callbacks=True, suppress_callback_exceptions=True)
 app.title = "KrakenSDR DoA"
 app.config.suppress_callback_exceptions = True
 

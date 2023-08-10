@@ -1,7 +1,9 @@
-from dash import dcc, html
+from dash_extensions import WebSocket
+from dash_extensions.enrich import dcc, html
 
 layout = html.Div(
     [
+        WebSocket(id="ws", url="ws://192.168.1.43:5000/krakenrf_data"),
         dcc.Location(id="url", refresh=True),
         html.Div(
             [
@@ -23,7 +25,7 @@ layout = html.Div(
         html.Div(id="placeholder_start", style={"display": "none"}),
         html.Div(id="placeholder_stop", style={"display": "none"}),
         html.Div(id="placeholder_save", style={"display": "none"}),
-        html.Div(id="placeholder_update_rx", style={"display": "none"}),
+        html.Div(id="placeholder_update_rx"),
         html.Div(id="placeholder_recofnig_daq", style={"display": "none"}),
         html.Div(id="placeholder_update_daq_ini_params", style={"display": "none"}),
         html.Div(id="placeholder_update_freq", style={"display": "none"}),

@@ -9,5 +9,6 @@ else
 fi
 
 sudo kill -${KILL_SIGNAL} $(ps ax | grep "[p]ython3 _UI/_web_interface/app.py" | awk '{print $1}') 2> /dev/null
+sudo kill -${KILL_SIGNAL} $(ps ax | grep "[p]ython3 _streaming_server/server.py" | awk '{print $1}') 2> /dev/null
 sudo kill -${KILL_SIGNAL} $(ps ax | grep "[p]hp" | awk '{print $1}') 2> /dev/null
 sudo pkill -f node

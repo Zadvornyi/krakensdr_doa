@@ -1,6 +1,6 @@
 import os
 
-from dash import clientside_callback, Input, Output, State, dcc
+from dash import Input, Output, State, clientside_callback, dcc
 
 # isort: off
 from maindash import app, spectrum_fig, waterfall_fig, web_interface
@@ -16,6 +16,18 @@ from views import daq_status_card
 # ============================================
 #          CALLBACK FUNCTIONS
 # ============================================
+@app.callback(Output("ws", "send"), [Input("btn-start_proc", component_property="n_clicks")])
+def send(value):
+    print(value, "SEND")
+    return value
+
+
+@app.callback(Output("placeholder_update_rx", "children"), [Input("ws", "message")])
+def message(e):
+    print(e, "MESSAGE")
+    return f"Response from websocket: {e['data']}"
+
+
 @app.callback(
     Output("dummy_output", "children", allow_duplicate=True),
     [
@@ -151,8 +163,10 @@ def update_daq_status_card_intervarls(intervals):
     return daq_status_card.daq_status_content()
 
 
-@app.callback([Output("spectrum-graph", "figure"), Output("waterfall-graph", "extendData")],
-              Input("settings-refresh-timer", "n_intervals"))
+@app.callback(
+    [Output("spectrum-graph", "figure"), Output("waterfall-graph", "extendData")],
+    Input("settings-refresh-timer", "n_intervals"),
+)
 def update_spectrum(intervals):
     fetch_dsp_data(web_interface)
     return plot_spectrum(web_interface, spectrum_fig, waterfall_fig)
@@ -162,6 +176,7 @@ def update_spectrum(intervals):
 def update_doa_graph(intervals):
     fetch_dsp_data(web_interface)
     return plot_doa(web_interface)
+
 
 # @app.callback(
 #     Output("placeholder_update_rx", "children"),

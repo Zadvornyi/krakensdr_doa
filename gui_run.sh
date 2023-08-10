@@ -42,3 +42,7 @@ $SERVER_BIN "${SHARED_FOLDER}" 2>/dev/null &
 # Start nodejs server for KrakenSDR Pro App
 node _nodejs/index.js 1>/dev/null 2>/dev/null &
 #node _nodejs/index.js
+
+# Start steaming server for Kraken_doa UI
+echo "Start Steaming Server $IPADDR:5000"
+python3 _streaming_server/server.py 1>/dev/null 2>/dev/null &

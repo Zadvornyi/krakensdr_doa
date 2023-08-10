@@ -5,16 +5,11 @@ from kraken_web_spectrum import init_spectrum_fig
 from variables import doa_fig, fig_layout, trace_colors
 from waterfall import init_waterfall
 
-# app = dash.Dash(__name__, suppress_callback_exceptions=True,
-# compress=True, update_title="") # cannot use update_title with
-# dash_devices
-app = DashProxy(__name__, prevent_initial_callbacks=True, suppress_callback_exceptions=True)
+
+app = DashProxy(__name__, compress=True, prevent_initial_callbacks=True, suppress_callback_exceptions=True)
 app.title = "KrakenSDR DoA"
 app.config.suppress_callback_exceptions = True
 
-# app_log = logger.getLogger('werkzeug')
-# app_log.setLevel(settings.logging_level*10)
-# app_log.setLevel(30) # TODO: Only during dev time
 
 #############################################
 #          Prepare Dash application         #

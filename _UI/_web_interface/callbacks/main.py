@@ -22,9 +22,9 @@ def send(value):
 
 
 @app.callback(Output("placeholder_update_rx", "children"), [Input("ws", "message")])
-def message(e):
-    # print(e, "MESSAGE")
-    return f"Response from websocket: {e['data']}"
+def message(event):
+    print(event, "MESSAGE")
+    return f"Response from websocket: {event['data']}"
 
 
 @app.callback(

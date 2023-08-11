@@ -32,7 +32,7 @@ receiver_path = os.path.join(root_path, "_receiver")
 signal_processor_path = os.path.join(root_path, "_signal_processing")
 streaming_server_path = os.path.join(root_path, "_streaming_server")
 ui_path = os.path.join(root_path, "_UI")
-
+print(streaming_server_path, 'streaming_server_path')
 sys.path.insert(0, receiver_path)
 sys.path.insert(0, signal_processor_path)
 sys.path.insert(0, streaming_server_path)

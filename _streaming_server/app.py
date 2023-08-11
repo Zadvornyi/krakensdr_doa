@@ -48,8 +48,10 @@ async def krakenrf_data():
 
     while True:
         fetch_dsp_data(web_interface)
-        print(web_interface.module_signal_processor.__dict__, "websocket")
-        output = json.dumps(web_interface.module_signal_processor.latitude)
+        output = json.dumps({
+            "daq_update_rate": web_interface.daq_update_rate,
+            "daq_conn_status": web_interface.daq_conn_status
+        })
         await websocket.send(output)
         await asyncio.sleep(1)
 if __name__ == "__main__":

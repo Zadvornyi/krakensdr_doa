@@ -1,11 +1,15 @@
 from dash_extensions.enrich import DashProxy
 
-
+# isort: off
+from variables import doa_fig, fig_layout, trace_colors
 from kraken_web_doa import init_plot_doa
 from kraken_web_interface import WebInterface
 from kraken_web_spectrum import init_spectrum_fig
 from waterfall import init_waterfall
-from variables import doa_fig, fig_layout, trace_colors
+
+# isort: on
+
+
 
 app = DashProxy(__name__, compress=True, prevent_initial_callbacks=True, suppress_callback_exceptions=True)
 app.title = "KrakenSDR DoA"

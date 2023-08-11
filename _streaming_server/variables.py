@@ -57,5 +57,5 @@ doa_fig = go.Figure(layout=fig_layout)
 option = [{"label": "", "value": 1}]
 
 
-
+AUTO_GAIN_VALUE = -100.0
 DEFAULT_MAPPING_SERVER_ENDPOINT = "wss://map.krakenrf.com:2096"

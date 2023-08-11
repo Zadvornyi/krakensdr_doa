@@ -5,7 +5,7 @@ from configparser import ConfigParser
 
 import numpy as np
 from krakenSDR_signal_processor import DEFAULT_VFO_FIR_ORDER_FACTOR
-from variables import DEFAULT_MAPPING_SERVER_ENDPOINT, HZ_TO_MHZ, daq_config_filename
+from variables import AUTO_GAIN_VALUE, DEFAULT_MAPPING_SERVER_ENDPOINT, HZ_TO_MHZ, daq_config_filename
 
 
 def read_config_file_dict(config_fname=daq_config_filename):
@@ -207,9 +207,16 @@ def settings_change_watcher(web_interface, settings_file_path):
                 dsp_settings = json.loads(myfile.read())
 
         center_freq = float(dsp_settings.get("center_freq", 100.0))
-        gain = float(dsp_settings.get("uniform_gain", 1.4))
+        gain = (
+            float(dsp_settings.get("uniform_gain", 1.4))
+            if dsp_settings.get("uniform_gain", 1.4) != "Auto"
+            else AUTO_GAIN_VALUE
+        )
 
         web_interface.ant_spacing_meters = float(dsp_settings.get("ant_spacing_meters", 0.5))
+
+        web_interface.en_system_control = [1] if dsp_settings.get("en_system_control", False) else []
+        web_interface.en_beta_features = [1] if dsp_settings.get("en_beta_features", False) else []
 
         web_interface.module_signal_processor.en_DOA_estimation = dsp_settings.get("en_doa", 0)
         web_interface.module_signal_processor.DOA_decorrelation_method = dsp_settings.get("doa_decorrelation_method", 0)
@@ -245,6 +252,9 @@ def settings_change_watcher(web_interface, settings_file_path):
         # VFO Configuration
         web_interface.module_signal_processor.spectrum_fig_type = dsp_settings.get("spectrum_calculation", "Single")
         web_interface.module_signal_processor.vfo_mode = dsp_settings.get("vfo_mode", "Standard")
+        web_interface.module_signal_processor.vfo_default_squelch_mode = dsp_settings.get(
+            "vfo_default_squelch_mode", "Auto"
+        )
         web_interface.module_signal_processor.vfo_default_demod = dsp_settings.get("vfo_default_demod", "None")
         web_interface.module_signal_processor.vfo_default_iq = dsp_settings.get("vfo_default_iq", "False")
         web_interface.module_signal_processor.max_demod_timeout = int(dsp_settings.get("max_demod_timeout", 60))
@@ -262,6 +272,9 @@ def settings_change_watcher(web_interface, settings_file_path):
                 dsp_settings.get("vfo_fir_order_factor_" + str(i), DEFAULT_VFO_FIR_ORDER_FACTOR)
             )
             web_interface.module_signal_processor.vfo_freq[i] = float(dsp_settings.get("vfo_freq_" + str(i), 0))
+            web_interface.module_signal_processor.vfo_squelch_mode[i] = dsp_settings.get(
+                "vfo_squelch_mode_" + str(i), "Default"
+            )
             web_interface.module_signal_processor.vfo_squelch[i] = int(dsp_settings.get("vfo_squelch_" + str(i), 0))
             web_interface.module_signal_processor.vfo_demod[i] = dsp_settings.get("vfo_demod_" + str(i), "Default")
             web_interface.module_signal_processor.vfo_iq[i] = dsp_settings.get("vfo_iq_" + str(i), "Default")

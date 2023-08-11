@@ -3,7 +3,7 @@ from configparser import ConfigParser
 import ini_checker
 from dash import html
 from variables import daq_config_filename
-from views import daq_status_card, start_stop_card, system_control_card, tooltips
+from views import daq_status_card, system_control_card, start_stop_card, tooltips
 from views.daq_config_card import get_daq_config_card_layout
 from views.display_options_card import get_display_options_card_layout
 from views.dsp_config_card import get_dsp_config_card_layout

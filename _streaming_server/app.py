@@ -35,7 +35,7 @@ app = Quart(__name__)
 #          Prepare Dash application         #
 ############################################
 web_interface = WebInterface()
-
+# print(web_interface.module_signal_processor.__dict__)
 #############################################
 #       Prepare component dependencies      #
 #############################################
@@ -48,7 +48,7 @@ async def krakenrf_data():
 
     while True:
         fetch_dsp_data(web_interface)
-        print(web_interface.module_signal_processor.latitude, "websocket")
+        print(web_interface.module_signal_processor.__dict__, "websocket")
         output = json.dumps(web_interface.module_signal_processor.latitude)
         await websocket.send(output)
         await asyncio.sleep(1)

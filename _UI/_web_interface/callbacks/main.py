@@ -18,13 +18,12 @@ from views import daq_status_card
 # ============================================
 @app.callback(Output("ws", "send"), [Input("btn-start_proc", component_property="n_clicks")])
 def send(value):
-    print(value, "SEND")
     return value
 
 
 @app.callback(Output("placeholder_update_rx", "children"), [Input("ws", "message")])
 def message(e):
-    print(e, "MESSAGE")
+    # print(e, "MESSAGE")
     return f"Response from websocket: {e['data']}"
 
 

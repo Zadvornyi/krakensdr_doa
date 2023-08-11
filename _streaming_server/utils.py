@@ -121,6 +121,7 @@ def fetch_signal_processing_data(web_interface):
                 for avg_power in data_entry[1]:
                     avg_powers_str += "{:.1f}".format(avg_power)
                     avg_powers_str += ", "
+                # TODO: delete unnesesary_prints
                 print(avg_powers_str, "avg_powers")
                 web_interface.avg_powers = avg_powers_str[:-2]
             elif data_entry[0] == "spectrum":

@@ -335,13 +335,6 @@ def daq_status_content():
         ),
         html.Div(
             [
-                html.Div("Average Power:", id="label_daq_avg_powers", className="field-label"),
-                html.Div(web_interface.avg_powers, id="body_daq_avg_powers", className="field-body"),
-            ],
-            className="field",
-        ),
-        html.Div(
-            [
                 html.Div("GPS status:", id="label_gps_en", className="field-label"),
                 html.Div(get_gps_en_str(), id="body_gps_en", className="field-body", style=get_gps_en_style()),
             ],

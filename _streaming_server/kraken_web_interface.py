@@ -214,7 +214,6 @@ class WebInterface:
         self.module_signal_processor.compass_offset = self.compass_offset
         self.daq_dsp_latency = 0  # [ms]
         self.max_amplitude = 0  # Used to help setting the threshold level of the squelch
-        self.avg_powers = []
         self.squelch_update = []
         self.logger.info("Web interface object initialized")
 

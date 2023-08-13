@@ -3,7 +3,6 @@ from dash_extensions.enrich import dcc, html
 
 layout = html.Div(
     [
-        WebSocket(id="ws", url="ws://192.168.1.43:5000/krakenrf_data"),
         dcc.Location(id="url", refresh=True),
         html.Div(
             [

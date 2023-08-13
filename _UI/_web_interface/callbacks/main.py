@@ -16,15 +16,6 @@ from views import daq_status_card
 # ============================================
 #          CALLBACK FUNCTIONS
 # ============================================
-@app.callback(Output("ws", "send"), [Input("btn-start_proc", component_property="n_clicks")])
-def send(value):
-    return value
-
-
-@app.callback(Output("placeholder_update_rx", "children"), [Input("ws", "message")])
-def message(event):
-    print(event, "MESSAGE")
-    return f"Response from websocket: {event['data']}"
 
 
 @app.callback(
@@ -175,7 +166,6 @@ def update_spectrum(intervals):
 def update_doa_graph(intervals):
     fetch_dsp_data(web_interface)
     return plot_doa(web_interface)
-
 
 # @app.callback(
 #     Output("placeholder_update_rx", "children"),

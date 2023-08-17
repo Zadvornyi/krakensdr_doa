@@ -282,7 +282,6 @@ class SignalProcessor(threading.Thread):
         Main processing thread
         """
         # scipy.fft.set_workers(4)
-        print('RUN START')
         myip = "127.0.0.1"
         try:
             myip = json.loads(requests.get("https://ip.seeip.org/jsonip?").text)["ip"]
@@ -301,7 +300,6 @@ class SignalProcessor(threading.Thread):
                     self.update_location_and_timestamp()
 
                 # -----> ACQUIRE NEW DATA FRAME <-----
-                print('SIGNAL RUN')
                 self.module_receiver.get_iq_online()
                 self.adc_overdrive = self.module_receiver.iq_header.adc_overdrive_flags
 

@@ -108,12 +108,13 @@ class ReceiverRTLSDR:
             if not self.receiver_connection_status:
                 if self.data_interface == "eth":
                     # Establlish IQ data interface connection
+                    print("eth_connect")
                     self.socket_inst.connect((self.rec_ip_addr, self.port))
                     self.socket_inst.sendall(str.encode("streaming"))
                     self.receive_iq_frame()
 
                     self.M = self.iq_header.active_ant_chs
-
+                print("CONNECT eth_connect")
                 # Establish control interface connection
                 self.ctr_iface_socket.connect((self.rec_ip_addr, self.ctr_iface_port))
                 self.receiver_connection_status = True
@@ -177,7 +178,6 @@ class ReceiverRTLSDR:
         """
         This function obtains a new IQ data frame through the Ethernet IQ data or the shared memory interface
         """
-
         # Check connection
         if not self.receiver_connection_status:
             fail = self.eth_connect()
@@ -185,10 +185,12 @@ class ReceiverRTLSDR:
                 return -1
 
         if self.data_interface == "eth":
+            print("ETHERNET IQDownload")
             self.socket_inst.sendall(str.encode("IQDownload"))  # Send iq request command
             self.iq_samples = self.receive_iq_frame()
 
         elif self.data_interface == "shmem":
+            print("SHERID MEMORY")
             active_buff_index = self.in_shmem_iface.wait_buff_free()
             if active_buff_index < 0 or active_buff_index > 1:
                 self.logger.info("Terminating.., signal: {:d}".format(active_buff_index))

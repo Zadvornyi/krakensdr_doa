@@ -1,0 +1,67 @@
+{
+  "stationid": "<string>",
+  "type": "<string> | krakenSDR | ip camera| zukorok | scaner",
+  "status": {
+    "connected:": true
+  },
+  "description": "<string>",
+  "location": {
+    "timestamp_utc": {
+      "microseconds": 0
+    },
+    // Джерело координат
+    "type": "static",
+    // Kоординати, азімут та відповідні стандартні відхилення
+    "coordinates": {
+      "latitude": {
+        // Широта [градус]
+        "value": {
+          "degree": 0.0
+        },
+        // Стандартне відхилення вимірювання координати в локальній Декартовій системі [метр]
+        "standard_deviation": {
+          "meter": 0.0
+        }
+      },
+      "longitude": {
+        // Довгота [градус]
+        "value": {
+          "degree": 0.0
+        },
+        // Стандартне відхилення вимірювання координати в локальній Декартовій системі [метр]
+        "standard_deviation": {
+          "meter": 0.0
+        }
+      },
+      "altitude": {
+        // Висота [метр]
+        "value": {
+          "meter": 0.0
+        },
+        // Стандартне відхилення вимірювання висоти [метр]
+        "standard_deviation": {
+          "meter": 0.0
+        }
+      }
+    },
+    "status": {
+      // Чи вважає що сигнал глушать
+      "jammed:": false,
+      // Чи вважає що сигнал не справжній
+      "spoofed": false,
+      // Чи приймач працює номінально
+      "valid": true
+    }
+  },
+  "link": "<string>",
+  "timestamp_utc": {
+    "microseconds": 0
+  },
+  "interface_version": 0,
+  "krakenSDR": {},
+  "zukorok": {},
+  scaner: {}
+}
+
+
+
